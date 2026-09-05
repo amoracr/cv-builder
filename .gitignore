@@ -1,0 +1,45 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# --- Data Base ---
+*.db
+*.sqlite
+*.sqlite3
+backend/data/*
+!backend/data/.gitkeep
+
+# --- Environment ---
+.env
+.env.local
+
+# --- Docker ---
+.docker/
+
+# --- Editors & IDEs ---
+
+## Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.history/
+
+## PyCharm / JetBrains
+.idea/
+
+# --- OS Files ---
+## macOS
+.DS_Store
+
+## Windows
+Thumbs.db
+ehthumbs.db
+desktop.ini
