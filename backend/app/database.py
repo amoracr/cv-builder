@@ -1,0 +1,46 @@
+import os
+
+from sqlmodel import Session, SQLModel, create_engine, select
+
+# Importamos los modelos explícitamente
+from app.models import Company, JobOffer, JobSource
+
+db_path = os.getenv("DB_PATH", "./data/cv_builder.db")
+
+if not db_path.startswith("sqlite://"):
+    sqlite_url = f"sqlite:///{db_path}"
+else:
+    sqlite_url = db_path
+
+connect_args = {"check_same_thread": False}
+engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+
+
+def init_db():
+
+    SQLModel.metadata.create_all(engine)
+
+    # Creamos los valores por defecto si no existen
+    with Session(engine) as session:
+        # 1. Verificar o crear Company por defecto
+        default_company = session.exec(
+            select(Company).where(Company.name == "Manual")
+        ).first()
+        if not default_company:
+            default_company = Company(name="Manual")
+            session.add(default_company)
+
+        # 2. Verificar o crear JobSource por defecto
+        default_source = session.exec(
+            select(JobSource).where(JobSource.name == "Direct Message")
+        ).first()
+        if not default_source:
+            default_source = JobSource(name="Direct Message")
+            session.add(default_source)
+
+        session.commit()
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
