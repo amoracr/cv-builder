@@ -2,9 +2,9 @@ import re
 from html import unescape
 
 import feedparser
-from config import JOB_ROLES, JOB_TECHS, WWR_CATEGORIES, WWR_RSS_FEEDS
+from config import JOB_TECHS, WWR_RSS_FEEDS
 from database import engine
-from models import JobOffer
+from models import Company, JobOffer, JobSource
 from sqlmodel import Session, select
 
 
@@ -20,7 +20,7 @@ def clean_html(raw_html: str) -> str:
 def fetch_wwr_jobs(rss_url: str):
     """
     Obtiene y parsea los ítems de un feed RSS de We Work Remotely.
-    Retorna una lista de diccionarios con title, skills, category, description y link.
+    Separa empresa y rol, y detecta tecnologías tanto en tags como en el texto.
     """
     print(f"Obteniendo empleos de: {rss_url}")
     feed = feedparser.parse(rss_url)
@@ -28,39 +28,55 @@ def fetch_wwr_jobs(rss_url: str):
     jobs = []
 
     for entry in feed.entries:
-        # 1. Título del puesto
-        title = entry.get("title", "")
+        original_title = entry.get("title", "")
 
-        # 2. Categoría (WWR suele ponerla en 'category' o dentro de las etiquetas 'tags')
-        category = entry.get("category", "")
-        if not category and hasattr(entry, "tags") and entry.tags:
-            category = entry.tags[0].get("term", "")
+        # Separar el título por ':', '-' o '–' para aislar Empresa y Rol
+        parts = re.split(r"[:–-]", original_title, maxsplit=1)
 
-        # 3. Descripción (el RSS suele traer HTML en 'summary' o 'description')
+        if len(parts) > 1:
+            company_name = parts[0].strip()
+            role = parts[1].strip()
+        else:
+            company_name = "Unknown Company"
+            role = original_title.strip()
+
         raw_description = entry.get("summary", entry.get("description", ""))
         description = clean_html(raw_description)
 
-        # 4. Skills / Tech Stack con limpieza inteligente de compuestos (ej. "Django and Python")
-        skills = []
+        text_to_search = f"{original_title} {description}"
+        detected_techs = set()
+
         if hasattr(entry, "tags"):
             for tag in entry.tags:
                 term = tag.get("term", "")
                 if term:
-                    # Separa por comas, 'and', barras o ampersands para aislar habilidades individuales
                     sub_skills = re.split(
                         r",|\sand\s|/|\s&\s", term, flags=re.IGNORECASE
                     )
                     for s in sub_skills:
                         clean_s = s.strip()
                         if clean_s:
-                            skills.append(clean_s)
+                            detected_techs.add(clean_s)
+
+        if JOB_TECHS:
+            for tech in JOB_TECHS:
+                tech_clean = tech.strip()
+                if not tech_clean:
+                    continue
+
+                escaped_tech = re.escape(tech_clean)
+                pattern = rf"\b{escaped_tech}\b"
+
+                if re.search(pattern, text_to_search, re.IGNORECASE):
+                    detected_techs.add(tech_clean)
 
         job_data = {
-            "title": title,
-            "skills": skills,
-            "category": category,
+            "title": original_title,
+            "company_name": company_name,
+            "role": role,
+            "techs": list(detected_techs),
             "description": description,
-            "link": entry.get("link", ""),
+            "url": entry.get("link", ""),
         }
 
         jobs.append(job_data)
@@ -70,7 +86,7 @@ def fetch_wwr_jobs(rss_url: str):
 
 def run():
     print(
-        "📡 [WWR Scraper] Iniciando descarga con filtro estricto por Categoría y Stack..."
+        "📡 [WWR Scraper] Iniciando descarga con validación directa sobre techs detectadas..."
     )
     print(f"Feeds configurados: {WWR_RSS_FEEDS}")
 
@@ -86,59 +102,60 @@ def run():
             found_jobs = fetch_wwr_jobs(rss_url=rss_url)
 
             for job in found_jobs:
-                # 1. Filtro de Categoría (si se configuraron categorías en el .env)
-                if WWR_CATEGORIES:
-                    job_cat_lower = job["category"].lower()
-                    if not any(cat in job_cat_lower for cat in WWR_CATEGORIES):
-                        continue  # Descarta si la categoría no coincide
-
-                # Unimos el título, descripción y skills en un solo bloque de texto para buscar
-                text_to_search = (
-                    f"{job['title']} {job['description']} {' '.join(job['skills'])}"
-                )
-
-                # 2. Filtro de Roles (ej: Backend, Full Stack) usando límites de palabra \b
-                if JOB_ROLES:
-                    role_matched = any(
-                        re.search(
-                            rf"\b{re.escape(role)}\b", text_to_search, re.IGNORECASE
-                        )
-                        for role in JOB_ROLES
-                    )
-                    if not role_matched:
-                        continue
-
-                # 3. Filtro de Tecnologías / Stack (ej: Python, Django) usando límites de palabra \b
                 if JOB_TECHS:
-                    tech_matched = any(
-                        re.search(
-                            rf"\b{re.escape(tech)}\b", text_to_search, re.IGNORECASE
-                        )
-                        for tech in JOB_TECHS
-                    )
+                    required_techs = {t.strip().lower() for t in JOB_TECHS if t.strip()}
+                    job_techs_lower = {t.strip().lower() for t in job["techs"]}
+
+                    # Comprobamos si al menos una tecnología requerida está presente en las techs de la oferta
+                    tech_matched = any(req in job_techs_lower for req in required_techs)
                     if not tech_matched:
                         continue
 
-                # 4. Verificar si ya existe en la base de datos por el link (evitar duplicados)
+                source_name = "We Work Remotely"
+                source = session.exec(
+                    select(JobSource).where(JobSource.name == source_name)
+                ).first()
+
+                if not source:
+                    source = JobSource(
+                        name=source_name, base_url="https://weworkremotely.com"
+                    )
+                    session.add(source)
+                    session.commit()
+                    session.refresh(source)
+
+                company = session.exec(
+                    select(Company).where(Company.name == job["company_name"])
+                ).first()
+
+                if not company:
+                    company = Company(name=job["company_name"])
+                    session.add(company)
+                    session.commit()
+                    session.refresh(company)
+
                 existing_offer = session.exec(
-                    select(JobOffer).where(JobOffer.link == job["link"])
+                    select(JobOffer).where(JobOffer.url == job["url"])
                 ).first()
 
                 if existing_offer:
-                    continue  # Ya la tenemos registrada, saltamos
+                    continue
 
-                # 5. Guardar la oferta relevante en la base de datos
                 new_offer = JobOffer(
                     title=job["title"],
+                    role=job["role"],
                     description=job["description"],
-                    category=job["category"],
-                    link=job["link"],
+                    url=job["url"],
+                    company_id=company.id,
+                    source_id=source.id,
                 )
 
                 session.add(new_offer)
                 session.commit()
                 total_saved += 1
-                print(f"✨ [Guardada] {job['title']}")
+                print(
+                    f"✨ [Guardada] {job['company_name']} -> {job['role']} | Techs: {job['techs']}"
+                )
 
         print(
             f"✅ [WWR Scraper] Sincronización completada. Guardadas: {total_saved} ofertas relevantes."
