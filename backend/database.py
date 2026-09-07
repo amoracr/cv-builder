@@ -1,9 +1,8 @@
 import os
 
-from sqlmodel import Session, SQLModel, create_engine, select
-
 # Importamos los modelos explícitamente
 from models import Company, JobOffer, JobSource
+from sqlmodel import Session, SQLModel, create_engine, select
 
 db_path = os.getenv("DB_PATH", "./data/cv_builder.db")
 
