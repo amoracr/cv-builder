@@ -1,7 +1,9 @@
 fastapi
-uvicorn
-sqlmodel
+feedparser
 playwright
-weasyprint
 pydantic
+python-dotenv
 requests
+sqlmodel
+uvicorn
+weasyprint

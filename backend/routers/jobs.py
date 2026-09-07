@@ -1,13 +1,51 @@
 from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
+from sqlmodel import Session, func, select
 
-from app.database import get_session
-from app.models import Company, JobOffer, JobOfferCreate, JobSource
+from database import get_session
+from models import Company, JobOffer, JobOfferCreate, JobSource
+from scrapers.wwr import run as run_wwr
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+
+@router.head("/jobs/", status_code=200)
+def count_jobs_head(response: Response, session: Session = Depends(get_session)):
+    """
+    Método HEAD para el recurso /jobs/.
+    Retorna la cantidad total de ofertas de empleo en la cabecera 'X-Total-Count'
+    sin transferir el cuerpo de la respuesta.
+    """
+    # Contamos el total de registros en la tabla JobOffer
+    total_jobs = session.exec(select(func.count()).select_from(JobOffer)).one()
+
+    # Asignamos el conteo al header de la respuesta
+    response.headers["X-Total-Count"] = str(total_jobs)
+
+    # Los métodos HEAD no llevan cuerpo de respuesta (return vacío o None)
+    return None
+
+
+@router.get("/jobs/")
+def list_jobs(
+    role: str | None = Query(
+        default=None, description="Ej: wordpress developer, php developer"
+    ),
+    sector: str | None = Query(default=None, description="private / public"),
+    session: Session = Depends(get_session),
+):
+    statement = select(JobOffer)
+
+    if role:
+        # .ilike() ignora mayúsculas y minúsculas en las consultas SQL
+        statement = statement.where(JobOffer.role.ilike(f"%{role}%"))
+
+    if sector:
+        statement = statement.where(JobOffer.sector == sector)
+
+    return session.exec(statement).all()
 
 
 @router.get("/", response_model=List[JobOffer])
@@ -95,4 +133,27 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
         "message": "Rutina completada con éxito.",
         "jobs_archived": archived_count,
         "checked_at": now.isoformat(),
+    }
+
+
+def run_scrapers_background():
+    """Ejecuta el scraper de WWR en segundo plano"""
+    print("🎯 [Orquestador API] Iniciando proceso de WWR...")
+    try:
+        run_wwr()
+        print("✨ [Orquestador API] Proceso de WWR finalizado con éxito.")
+    except Exception as e:
+        print(f"❌ [Orquestador API] Error ejecutando WWR: {e}")
+
+
+@router.post("/run-scrapers", status_code=202)
+def trigger_scrapers(background_tasks: BackgroundTasks):
+    """
+    Endpoint para disparar la ingesta del RSS de We Work Remotely en segundo plano.
+    """
+    background_tasks.add_task(run_scrapers_background)
+
+    return {
+        "message": "La sincronización con We Work Remotely ha sido iniciada en segundo plano.",
+        "status": "processing",
     }

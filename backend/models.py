@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import event
 from sqlmodel import Field, Relationship, SQLModel
 
 
@@ -25,18 +26,23 @@ class JobOffer(SQLModel, table=True):
         default="Discovered"
     )  # Discovered, Applied, Interviewing, Archived, etc.
 
-    # NUEVO CAMPO: "private" o "public"
-    sector: str = Field(default="private")
+    sector: str = Field(default="private") # "private" o "public"    
+    role: Optional[str] = Field(default="General", index=True) # Offer role
+    optimized_cv_markdown: Optional[str] = Field(default=None)
 
-    match_score: Optional[float] = Field(default=None)
     company_id: Optional[int] = Field(default=None, foreign_key="company.id")
     source_id: Optional[int] = Field(default=None, foreign_key="jobsource.id")
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-    company: Optional[Company] = Relationship(back_populates="jobs")
-    source: Optional[JobSource] = Relationship(back_populates="jobs")
+    company: Optional["Company"] = Relationship(back_populates="jobs")
+    source: Optional["JobSource"] = Relationship(back_populates="jobs")
+
+# Evento de SQLAlchemy para actualizar el campo updated_at automáticamente antes de cada actualización
+@event.listens_for(JobOffer, "before_update")
+def receive_before_update(mapper, connection, target):
+    target.updated_at = datetime.utcnow()
 
 
 # Esquema para recibir los datos por API

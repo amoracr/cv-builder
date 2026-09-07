@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from app.database import init_db
-from app.routers import jobs
+
+from database import init_db
+from routers import jobs
 
 app = FastAPI(title="Job Automation Bot", version="1.0.0")
 
