@@ -1,12 +1,13 @@
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from typing import List
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
-from sqlmodel import Session, func, select
-
 from database import get_session
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from models import Company, JobOffer, JobOfferCreate, JobSource
-from scrapers.wwr import run as run_wwr
+from scrapers.remote_ok import RemoteOKScraper
+from scrapers.wwr import WWRScraper
+from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
@@ -18,13 +19,8 @@ def count_jobs_head(response: Response, session: Session = Depends(get_session))
     Retorna la cantidad total de ofertas de empleo en la cabecera 'X-Total-Count'
     sin transferir el cuerpo de la respuesta.
     """
-    # Contamos el total de registros en la tabla JobOffer
     total_jobs = session.exec(select(func.count()).select_from(JobOffer)).one()
-
-    # Asignamos el conteo al header de la respuesta
     response.headers["X-Total-Count"] = str(total_jobs)
-
-    # Los métodos HEAD no llevan cuerpo de respuesta (return vacío o None)
     return None
 
 
@@ -39,7 +35,6 @@ def list_jobs(
     statement = select(JobOffer)
 
     if role:
-        # .ilike() ignora mayúsculas y minúsculas en las consultas SQL
         statement = statement.where(JobOffer.role.ilike(f"%{role}%"))
 
     if sector:
@@ -84,7 +79,7 @@ def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
         title=job_in.title,
         url=job_in.url,
         description=job_in.description,
-        sector=job_in.sector or "private",  # NUEVO
+        sector=job_in.sector or "private",
         company_id=company.id,
         source_id=source.id,
     )
@@ -104,17 +99,14 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
     """
     now = datetime.utcnow()
 
-    # Seleccionamos las ofertas que NO estén ya archivadas
     statement = select(JobOffer).where(JobOffer.status != "archived")
     jobs = session.exec(statement).all()
 
     archived_count = 0
 
     for job in jobs:
-        # Calculamos los días transcurridos desde la última actualización
         days_inactive = (now - job.updated_at).days
 
-        # Evaluamos según el sector
         if (
             job.sector == "public"
             and days_inactive >= 360
@@ -122,7 +114,7 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
             and days_inactive >= 30
         ):
             job.status = "archived"
-            job.updated_at = now  # Actualizamos el timestamp
+            job.updated_at = now
             session.add(job)
             archived_count += 1
 
@@ -136,24 +128,34 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
     }
 
 
-def run_scrapers_background():
-    """Ejecuta el scraper de WWR en segundo plano"""
-    print("🎯 [Orquestador API] Iniciando proceso de WWR...")
+def run_single_scraper(scraper_instance, name: str):
+    """Función auxiliar para ejecutar y capturar errores de un scraper individual"""
+    print(f"🎯 [Orquestador API] Iniciando proceso de {name}...")
     try:
-        run_wwr()
-        print("✨ [Orquestador API] Proceso de WWR finalizado con éxito.")
+        scraper_instance.run()
+        print(f"✨ [Orquestador API] Proceso de {name} finalizado con éxito.")
     except Exception as e:
-        print(f"❌ [Orquestador API] Error ejecutando WWR: {e}")
+        print(f"❌ [Orquestador API] Error ejecutando {name}: {e}")
+
+
+def run_scrapers_background():
+    """Ejecuta todos los scrapers registrados de forma concurrente (en paralelo)"""
+    scrapers = [(WWRScraper(), "We Work Remotely"), (RemoteOKScraper(), "Remote OK")]
+
+    # Usamos ThreadPoolExecutor para correr las peticiones de red en paralelo
+    with ThreadPoolExecutor(max_workers=len(scrapers)) as executor:
+        for scraper, name in scrapers:
+            executor.submit(run_single_scraper, scraper, name)
 
 
 @router.post("/run-scrapers", status_code=202)
 def trigger_scrapers(background_tasks: BackgroundTasks):
     """
-    Endpoint para disparar la ingesta del RSS de We Work Remotely en segundo plano.
+    Endpoint para disparar la ingesta de todos los scrapers en paralelo en segundo plano.
     """
     background_tasks.add_task(run_scrapers_background)
 
     return {
-        "message": "La sincronización con We Work Remotely ha sido iniciada en segundo plano.",
+        "message": "La sincronización con los portales de empleo ha sido iniciada en segundo plano en paralelo.",
         "status": "processing",
     }
