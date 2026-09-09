@@ -28,11 +28,12 @@ class WWRScraper(BaseScraper):
                 company_name = "Unknown Company"
                 role = original_title.strip()
 
-            region = entry.get("region", "")
+            region = entry.get("region", "Anywhere")
+            region = self.clean_special_characters(region)
             raw_description = entry.get("summary", entry.get("description", ""))
             description = self.clean_html(raw_description)
+            description = self.clean_special_characters(description)
 
-            # Obtener tags iniciales de WWR
             initial_tags = []
             if hasattr(entry, "tags"):
                 for tag in entry.tags:
@@ -40,7 +41,6 @@ class WWRScraper(BaseScraper):
                     if term:
                         initial_tags.append(term)
 
-            # Usar el método heredado para detectar tecnologías
             text_to_search = f"{original_title} {description}"
             techs = self.detect_techs(text_to_search, initial_tags)
 
@@ -70,24 +70,12 @@ class WWRScraper(BaseScraper):
             found_jobs = self.fetch_jobs(rss_url)
 
             for job in found_jobs:
-                # 1. Filtro de Región: Debe incluir "Anyware" o "Anywhere"
-                region_text = job.get("region", "")
-                if not re.search(
-                    r"anywhere|anyw(a|e)re|worldwide|global", region_text, re.IGNORECASE
-                ):
+                if not self.validate_region(job_data=job):
                     continue
 
-                # 2. Filtro de Tecnologías
-                if JOB_TECHS:
-                    required_techs = {t.strip().lower() for t in JOB_TECHS if t.strip()}
-                    job_techs_lower = {t.strip().lower() for t in job["techs"]}
-                    if not any(req in job_techs_lower for req in required_techs):
-                        print(
-                            f"Skipping techs [RAW WWR] Título: {job['title']} | Región: {job['region']} | Techs detectadas: {job['techs']}"
-                        )
-                        continue
+                if not self.validate_tech_stack(job_data=job):
+                    continue
 
-                # 3. Guardar usando el método genérico de la clase base
                 saved = self.save_job(job)
                 if saved:
                     total_saved += 1

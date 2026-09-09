@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from abc import ABC, abstractmethod
 from html import unescape
 
@@ -20,6 +21,24 @@ class BaseScraper(ABC):
         clean_r = re.compile("<.*?>")
         text = re.sub(clean_r, "", raw_html)
         return unescape(text).strip()
+
+    def clean_special_characters(self, raw_text: str) -> str:
+        """
+        Limpia caracteres especiales invisibles, espacios no break,
+        caracteres de control y normaliza los espacios múltiples.
+        Mantiene tildes, eñes y puntuación estándar.
+        """
+        if not raw_text:
+            return ""
+
+        text = unescape(raw_text)
+        text = text.replace("\xa0", " ")
+        text = text.replace("\u200b", "")
+        text = "".join(ch for ch in text if unicodedata.category(ch)[0] != "C")
+
+        text = re.sub(r"\s+", " ", text)
+
+        return text.strip()
 
     def detect_techs(self, text_to_search: str, initial_tags: list = None) -> list:
         """Detecta tecnologías combinando tags nativos y búsqueda en el texto por JOB_TECHS."""
@@ -92,6 +111,22 @@ class BaseScraper(ABC):
             session.add(new_offer)
             session.commit()
             return True
+
+    def validate_region(self, job_data: dict):
+        region = job_data.get("region", "")
+        if not region or not region.strip():
+            return True
+        else:
+            return bool(
+                re.search(
+                    r"anywhere|anyw(a|e)re|worldwide|global", region, re.IGNORECASE
+                )
+            )
+
+    def validate_tech_stack(self, job_data: dict):
+        required_techs = {t.strip().lower() for t in JOB_TECHS if t.strip()}
+        job_techs = {t.strip().lower() for t in job_data.get("techs")}
+        return any(req in job_techs for req in required_techs)
 
     @abstractmethod
     def fetch_jobs(self, rss_url: str):
