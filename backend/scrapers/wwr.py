@@ -1,8 +1,9 @@
 import re
 
 import feedparser
-from .base_scraper import BaseScraper
 from config import JOB_TECHS, WWR_RSS_FEEDS
+
+from .base_scraper import BaseScraper
 
 
 class WWRScraper(BaseScraper):
