@@ -6,6 +6,7 @@ from database import get_session
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from models import Company, JobOffer, JobOfferCreate, JobSource
 from scrapers.remote_ok import RemoteOKScraper
+from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
 from sqlmodel import Session, func, select
 
@@ -140,7 +141,7 @@ def run_single_scraper(scraper_instance, name: str):
 
 def run_scrapers_background():
     """Ejecuta todos los scrapers registrados de forma concurrente (en paralelo)"""
-    scrapers = [(WWRScraper(), "We Work Remotely"), (RemoteOKScraper(), "Remote OK")]
+    scrapers = [(WWRScraper(), "We Work Remotely"), (RemoteOKScraper(), "Remote OK"), (RemotiveScraper(), "Remotive")]
 
     # Usamos ThreadPoolExecutor para correr las peticiones de red en paralelo
     with ThreadPoolExecutor(max_workers=len(scrapers)) as executor:
