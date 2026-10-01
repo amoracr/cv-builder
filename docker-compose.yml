@@ -4,7 +4,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
     container_name: job_automation_bot
-    restart: always
     volumes:
       - ./backend:/app
       - ./backend/data:/app/data
