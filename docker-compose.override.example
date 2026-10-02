@@ -1,0 +1,25 @@
+services:
+  backend:
+    volumes:
+      # Inyecta tu CV de Dropbox directo al contenedor en modo solo lectura (:ro)
+      - /path/to/cv-file.md:/app/data/cv.md:ro
+    depends_on:
+      - ollama
+
+  ollama:
+    image: ollama/ollama:rocm # rocm for linux using AMD graphics, latest for windows
+    container_name: ollama_service
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    ports:
+      - "${OLLAMA_PORT:-11434}:${OLLAMA_PORT:-11434}"
+    environment:
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0  # Setting for linux using AMD graphics, non required for windows
+    
+    volumes:
+      - ollama_data:/root/.ollama
+
+volumes:
+  ollama_data:
+    driver: local    
