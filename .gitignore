@@ -21,6 +21,7 @@ backend/data/*
 
 # --- Docker ---
 .docker/
+docker-compose.override.yml
 
 # --- Editors & IDEs ---
 
