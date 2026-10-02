@@ -61,8 +61,6 @@ class WWRScraper(BaseScraper):
     def run(self):
         print("📡 [WWR Scraper] Iniciando sincronización...")
         rss_urls = [url.strip() for url in WWR_RSS_FEEDS if url.strip()]
-        if not rss_urls:
-            rss_urls = ["https://weworkremotely.com/remote-jobs.rss"]
 
         total_saved = 0
 
