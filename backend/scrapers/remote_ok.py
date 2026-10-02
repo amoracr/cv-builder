@@ -1,7 +1,7 @@
 import re
 
 import requests
-from config import JOB_TECHS
+from config import JOB_TECHS, REMOTEOK_URL
 
 from .base_scraper import BaseScraper
 
@@ -69,7 +69,7 @@ class RemoteOKScraper(BaseScraper):
 
     def run(self):
         print("📡 [Remote OK Scraper] Iniciando sincronización...")
-        api_url = "https://remoteok.com/api"
+        api_url = REMOTEOK_URL
         target_tags = [t.strip().lower() for t in JOB_TECHS if t.strip()]
         api_urls = [f"{api_url}?tags={tag}" for tag in target_tags]
         total_saved = 0
