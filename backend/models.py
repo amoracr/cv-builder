@@ -1,8 +1,11 @@
 from datetime import datetime
+from zoneinfo import ZoneInfo
 from typing import Optional
 
 from sqlalchemy import event
 from sqlmodel import Field, Relationship, SQLModel
+
+COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
 
 class Company(SQLModel, table=True):
@@ -17,32 +20,53 @@ class JobSource(SQLModel, table=True):
     jobs: list["JobOffer"] = Relationship(back_populates="source")
 
 
+class TailoredCV(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    job_offer_id: int = Field(foreign_key="joboffer.id", unique=True)
+    markdown_content: str
+    summary_of_changes: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
+
+    job_offer: Optional["JobOffer"] = Relationship(back_populates="tailored_cv")
+
+
 class JobOffer(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
-    url: str
+    url: str = Field(index=True, unique=True)
     description: Optional[str] = None
+
+    # Estados y clasificación
     status: str = Field(
         default="Discovered"
-    )  # Discovered, Applied, Interviewing, Archived, etc.
+    )  # Discovered, Approved, Discarded, Applied, Archived
+    sector: str = Field(default="private")  # "private" o "public"
+    role: Optional[str] = Field(default="General", index=True)
 
-    sector: str = Field(default="private") # "private" o "public"    
-    role: Optional[str] = Field(default="General", index=True) # Offer role
-    optimized_cv_markdown: Optional[str] = Field(default=None)
+    # Resultados del análisis rápido de IA (métricas globales)
+    match_percentage: Optional[int] = Field(default=None)
+    ai_reasoning: Optional[str] = Field(default=None)
 
+    # Claves foráneas
     company_id: Optional[int] = Field(default=None, foreign_key="company.id")
     source_id: Optional[int] = Field(default=None, foreign_key="jobsource.id")
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    # Auditoría
+    created_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
 
-    company: Optional["Company"] = Relationship(back_populates="jobs")
-    source: Optional["JobSource"] = Relationship(back_populates="jobs")
+    # Relaciones ORM
+    company: Optional[Company] = Relationship(back_populates="jobs")
+    source: Optional[JobSource] = Relationship(back_populates="jobs")
+    tailored_cv: Optional[TailoredCV] = Relationship(
+        back_populates="job_offer", sa_relationship_kwargs={"uselist": False}
+    )
+
 
 # Evento de SQLAlchemy para actualizar el campo updated_at automáticamente antes de cada actualización
 @event.listens_for(JobOffer, "before_update")
 def receive_before_update(mapper, connection, target):
-    target.updated_at = datetime.utcnow()
+    target.updated_at = datetime.now(COSTA_RICA_TZ)
 
 
 # Esquema para recibir los datos por API
