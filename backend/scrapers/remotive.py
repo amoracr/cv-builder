@@ -1,6 +1,7 @@
 import requests
+from config import JOB_TECHS, REMOTIVE_CATEGORY, REMOTIVE_URL
+
 from .base_scraper import BaseScraper
-from config import JOB_TECHS, REMOTIVE_CATEGORY
 
 
 class RemotiveScraper(BaseScraper):
@@ -65,7 +66,7 @@ class RemotiveScraper(BaseScraper):
 
     def run(self):
         print("🚀 [Remotive Scraper] Iniciando procesamiento de ofertas...")
-        api_url = "https://remotive.com/api/remote-jobs"
+        api_url = REMOTIVE_URL
         target_tags = [t.strip().lower() for t in REMOTIVE_CATEGORY if t.strip()]
         api_urls = [f"{api_url}?category={tag}" for tag in target_tags]
         total_saved = 0
