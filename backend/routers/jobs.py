@@ -1,13 +1,16 @@
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import List
 
 from database import get_session
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
 from models import Company, JobOffer, JobOfferCreate, JobSource
+from database import get_session
 from scrapers.remote_ok import RemoteOKScraper
 from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
+from scrapers.jobicy import JobicyScraper
+from services.job_processor import process_discovered_jobs
 from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -22,11 +25,11 @@ def count_jobs_head(response: Response, session: Session = Depends(get_session))
     """
     total_jobs = session.exec(select(func.count()).select_from(JobOffer)).one()
     response.headers["X-Total-Count"] = str(total_jobs)
-    return None
+    return
 
 
 @router.get("/jobs/")
-def list_jobs(
+def List_jobs(
     role: str | None = Query(
         default=None, description="Ej: wordpress developer, php developer"
     ),
@@ -141,7 +144,12 @@ def run_single_scraper(scraper_instance, name: str):
 
 def run_scrapers_background():
     """Ejecuta todos los scrapers registrados de forma concurrente (en paralelo)"""
-    scrapers = [(WWRScraper(), "We Work Remotely"), (RemoteOKScraper(), "Remote OK"), (RemotiveScraper(), "Remotive")]
+    scrapers = [
+        (WWRScraper(), "We Work Remotely"),
+        (RemoteOKScraper(), "Remote OK"),
+        (RemotiveScraper(), "Remotive"),
+        (JobicyScraper(), "Jobicy"),
+    ]
 
     # Usamos ThreadPoolExecutor para correr las peticiones de red en paralelo
     with ThreadPoolExecutor(max_workers=len(scrapers)) as executor:
@@ -160,3 +168,10 @@ def trigger_scrapers(background_tasks: BackgroundTasks):
         "message": "La sincronización con los portales de empleo ha sido iniciada en segundo plano en paralelo.",
         "status": "processing",
     }
+
+
+@router.post("/process-queue")
+def trigger_processing_queue(session: Session = Depends(get_session)):
+    """Ejecuta el procesamiento por lotes de todas las ofertas 'Discovered' respetando el PAUSE_BETWEEN_REQUEST."""
+    result = process_discovered_jobs(session)
+    return result
