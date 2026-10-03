@@ -137,8 +137,13 @@ class OllamaProvider(BaseLLMProvider):
         import ollama
 
         self.host = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-        self.fast_model = os.getenv("OLLAMA_FAST_MODEL", "qwen2.5:3b")
-        self.pro_model = os.getenv("OLLAMA_PRO_MODEL", "qwen2.5:7b-instruct")
+        self.fast_model = os.getenv("OLLAMA_FAST_MODEL")
+        if not self.fast_model:
+            raise ValueError("OLLAMA_FAST_MODEL es obligatoria cuando LLM_ENGINE=ollama")
+        self.pro_model = os.getenv("OLLAMA_PRO_MODEL")
+        if not self.pro_model:
+            raise ValueError("OLLAMA_PRO_MODEL es obligatoria cuando LLM_ENGINE=ollama")
+
         self.client = ollama.Client(host=self.host)
 
     def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
