@@ -119,7 +119,7 @@ class BaseScraper(ABC):
         else:
             return bool(
                 re.search(
-                    r"anywhere|anyw(a|e)re|worldwide|global", region, re.IGNORECASE
+                    r"anywhere|anyw(a|e)re|worldwide|global|remot(e|o)", region, re.IGNORECASE
                 )
             )
 
