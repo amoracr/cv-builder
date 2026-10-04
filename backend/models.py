@@ -1,9 +1,9 @@
 from datetime import datetime
-from zoneinfo import ZoneInfo
 from typing import Optional
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import event
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import Column, Field, Relationship, SQLModel, Text
 
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
@@ -34,7 +34,7 @@ class JobOffer(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
     url: str = Field(index=True, unique=True)
-    description: Optional[str] = None
+    description: Optional[str] = Field(default=None, sa_column=Column(Text))
 
     # Estados y clasificación
     status: str = Field(
@@ -45,7 +45,7 @@ class JobOffer(SQLModel, table=True):
 
     # Resultados del análisis rápido de IA (métricas globales)
     match_percentage: Optional[int] = Field(default=None)
-    ai_reasoning: Optional[str] = Field(default=None)
+    ai_reasoning: Optional[str] = Field(default=None, sa_column=Column(Text))
 
     # Claves foráneas
     company_id: Optional[int] = Field(default=None, foreign_key="company.id")
