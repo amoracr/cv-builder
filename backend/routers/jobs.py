@@ -5,11 +5,11 @@ from typing import List
 from database import get_session
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
 from models import Company, JobOffer, JobOfferCreate, JobSource
-from database import get_session
+from scrapers.get_on_board import GetOnBoardScraper
+from scrapers.jobicy import JobicyScraper
 from scrapers.remote_ok import RemoteOKScraper
 from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
-from scrapers.jobicy import JobicyScraper
 from services.job_processor import process_discovered_jobs
 from sqlmodel import Session, func, select
 
@@ -149,6 +149,7 @@ def run_scrapers_background():
         (RemoteOKScraper(), "Remote OK"),
         (RemotiveScraper(), "Remotive"),
         (JobicyScraper(), "Jobicy"),
+        (GetOnBoardScraper(), "Get On Board"),
     ]
 
     # Usamos ThreadPoolExecutor para correr las peticiones de red en paralelo
