@@ -23,8 +23,8 @@ class JobSource(SQLModel, table=True):
 class TailoredCV(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_offer_id: int = Field(foreign_key="joboffer.id", unique=True)
-    markdown_content: str
-    summary_of_changes: Optional[str] = None
+    markdown_content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    summary_of_changes: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
 
     job_offer: Optional["JobOffer"] = Relationship(back_populates="tailored_cv")
