@@ -78,16 +78,10 @@ class RemoteOKScraper(BaseScraper):
             found_jobs = self.fetch_jobs(rss_url)
 
             for job in found_jobs:
-                if not self.validate_region(job_data=job):
-                    print(
-                        f"Skipping region [RAW RemoteOK] Título: {job['title']} | Región: {job['region']}"
-                    )
+                if not self.validate_region(job_data=job):                    
                     continue
 
                 if not self.validate_tech_stack(job_data=job):
-                    print(
-                        f"Skipping techs [RAW RemoteOK] Título: {job['title']} | Techs detectadas: {job['techs']}"
-                    )
                     continue
 
                 saved = self.save_job(job)

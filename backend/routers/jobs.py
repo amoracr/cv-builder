@@ -1,6 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import List
+from zoneinfo import ZoneInfo
 
 from database import get_session
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
@@ -14,6 +15,8 @@ from services.job_processor import process_discovered_jobs
 from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
+
+COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
 
 @router.head("/jobs/", status_code=200)
@@ -101,7 +104,7 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
     - Sector privado: 30 días desde updated_at
     - Sector público: 360 días desde updated_at
     """
-    now = datetime.utcnow()
+    now = datetime.now(COSTA_RICA_TZ)
 
     statement = select(JobOffer).where(JobOffer.status != "archived")
     jobs = session.exec(statement).all()
@@ -132,30 +135,32 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
     }
 
 
-def run_single_scraper(scraper_instance, name: str):
-    """Función auxiliar para ejecutar y capturar errores de un scraper individual"""
+def run_single_scraper(scraper_cls, name: str):
+    """Ejecuta un scraper individual de forma aislada"""
     print(f"🎯 [Orquestador API] Iniciando proceso de {name}...")
     try:
-        scraper_instance.run()
+        # Instanciamos el scraper sin pasarle la sesión (como está diseñado originalmente)
+        scraper = scraper_cls()
+        scraper.run()
         print(f"✨ [Orquestador API] Proceso de {name} finalizado con éxito.")
     except Exception as e:
-        print(f"❌ [Orquestador API] Error ejecutando {name}: {e}")
+        print(f"❌ [Orquestador API] Error crítico en {name}: {e}")
 
 
 def run_scrapers_background():
-    """Ejecuta todos los scrapers registrados de forma concurrente (en paralelo)"""
-    scrapers = [
-        (WWRScraper(), "We Work Remotely"),
-        (RemoteOKScraper(), "Remote OK"),
-        (RemotiveScraper(), "Remotive"),
-        (JobicyScraper(), "Jobicy"),
-        (GetOnBoardScraper(), "Get On Board"),
+    """Ejecuta cada scraper de forma concurrente pero totalmente aislada"""
+    # Pasamos las clases, no instancias compartidas
+    scrapers_to_run = [
+        (WWRScraper, "We Work Remotely"),
+        (RemoteOKScraper, "Remote OK"),
+        (RemotiveScraper, "Remotive"),
+        (JobicyScraper, "Jobicy"),
+        (GetOnBoardScraper, "Get On Board"),
     ]
 
-    # Usamos ThreadPoolExecutor para correr las peticiones de red en paralelo
-    with ThreadPoolExecutor(max_workers=len(scrapers)) as executor:
-        for scraper, name in scrapers:
-            executor.submit(run_single_scraper, scraper, name)
+    with ThreadPoolExecutor(max_workers=len(scrapers_to_run)) as executor:
+        for scraper_cls, name in scrapers_to_run:
+            executor.submit(run_single_scraper, scraper_cls, name)
 
 
 @router.post("/run-scrapers", status_code=202)

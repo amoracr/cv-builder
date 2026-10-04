@@ -90,9 +90,6 @@ class RemotiveScraper(BaseScraper):
                 saved = self.save_job(job)
                 if saved:
                     total_saved += 1
-                    print(
-                        f"✨ [Guardada - Remotive] {job['company_name']} -> {job['role']} | Ubicación: {job.get('location', 'Global')} | Techs: {job['techs']}"
-                    )
 
         print(f"✅ [Remotive Scraper] Finalizado. Guardadas: {total_saved} ofertas.")
         return total_saved

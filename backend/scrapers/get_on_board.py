@@ -116,9 +116,6 @@ class GetOnBoardScraper(BaseScraper):
                 saved = self.save_job(job)
                 if saved:
                     total_saved += 1
-                    print(
-                        f"✨ [Guardada - GetOnBoard] {job['company_name']} -> {job['title']}"
-                    )
 
         print(
             f"✅ [GetOnBoard Scraper] Sincronización completada. Guardadas: {total_saved} ofertas."

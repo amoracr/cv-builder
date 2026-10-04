@@ -78,9 +78,6 @@ class WWRScraper(BaseScraper):
                 saved = self.save_job(job)
                 if saved:
                     total_saved += 1
-                    print(
-                        f"✨ [Guardada - WWR] {job['company_name']} -> {job['role']} | Techs: {job['techs']}"
-                    )
 
         print(
             f"✅ [WWR Scraper] Sincronización completada. Guardadas: {total_saved} ofertas."

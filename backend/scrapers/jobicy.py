@@ -133,9 +133,6 @@ class JobicyScraper(BaseScraper):
                 saved = self.save_job(job)
                 if saved:
                     total_saved += 1
-                    print(
-                        f"✨ [Guardada - Jobicy] {job['company_name']} -> {job['role']} | Techs: {job['techs']}"
-                    )
 
         print(
             f"✅ [Jobicy Scraper] Sincronización completada. Guardadas: {total_saved} ofertas."
