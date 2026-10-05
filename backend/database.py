@@ -1,7 +1,9 @@
 import os
+import sqlite3
 
 # Importamos los modelos explícitamente
 from models import Company, JobSource
+from sqlalchemy import event
 from sqlmodel import Session, SQLModel, create_engine, select
 
 db_path = os.getenv("DB_PATH", "./data/cv_builder.db")
@@ -11,8 +13,17 @@ if not db_path.startswith("sqlite://"):
 else:
     sqlite_url = db_path
 
-connect_args = {"check_same_thread": False}
+connect_args = {"check_same_thread": False, "timeout": 30}
 engine = create_engine(sqlite_url, echo=True, connect_args=connect_args)
+
+
+@event.listens_for(engine, "connect")
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    if isinstance(dbapi_connection, sqlite3.Connection):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.close()
 
 
 def init_db():
