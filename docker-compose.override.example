@@ -1,25 +1,46 @@
 services:
   backend:
     volumes:
-      # Inyecta tu CV de Dropbox directo al contenedor en modo solo lectura (:ro)
+      # Path to your local Markdown CV file (e.g., ./data/cv.md) mounted in read-only mode
       - /path/to/cv-file.md:/app/data/cv.md:ro
     depends_on:
       - ollama
 
+  ## Ollama Service (Uncomment if using Ollama locally)
   ollama:
-    image: ollama/ollama:rocm # rocm for linux using AMD graphics, latest for windows
     container_name: ollama_service
-    devices:
-      - /dev/kfd:/dev/kfd
-      - /dev/dri:/dev/dri
     ports:
       - "${OLLAMA_PORT:-11434}:${OLLAMA_PORT:-11434}"
-    environment:
-      - HSA_OVERRIDE_GFX_VERSION=10.3.0  # Setting for linux using AMD graphics, non required for windows
-    
     volumes:
       - ollama_data:/root/.ollama
+    
+    # =====================================================================
+    # UNCOMMENT AND CHOOSE THE CONFIGURATION MATCHING YOUR OPERATING SYSTEM / GPU:
+    # =====================================================================
+
+    # --- OPTION 1: Linux with AMD Graphics (e.g., RX 6600 using ROCm) ---
+    # image: ollama/ollama:rocm
+    # devices:
+    #   - /dev/kfd:/dev/kfd
+    #   - /dev/dri:/dev/dri
+    # environment:
+    #   - HSA_OVERRIDE_GFX_VERSION=10.3.0  # Change according to your architecture (e.g., 10.3.0 for RX 6600, 11.0.0 for RX 7000)
+
+    # --- OPTION 2: Linux with NVIDIA Graphics (Requires NVIDIA Container Toolkit) ---
+    # image: ollama/ollama:latest
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    # --- OPTION 3: Windows (WSL2 with GPU) / macOS / CPU-only ---
+    image: ollama/ollama:latest
+    # Note for Windows/macOS: Docker Desktop automatically handles GPU passthrough 
+    # through WSL2 or native frameworks, so no extra 'devices' or 'deploy' blocks are needed.
 
 volumes:
   ollama_data:
-    driver: local    
+    driver: local
