@@ -1,15 +1,8 @@
-
-
-from services.LLMProvider import (
+from backend.llm.LLMProvider import (
     AtsOptimizedCv,
     JobMatchAnalysis,
     get_llm_provider,
 )
-
-
-# Funciones auxiliares de lectura de CV
-
-
 
 # Instancia global que utilizará el resto de la aplicación
 _provider = get_llm_provider()
