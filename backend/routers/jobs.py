@@ -11,7 +11,7 @@ from scrapers.jobicy import JobicyScraper
 from scrapers.remote_ok import RemoteOKScraper
 from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
-from services.job_processor import process_discovered_jobs
+from services.job_processor import analyze_discovered_jobs
 from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -163,7 +163,7 @@ def run_scrapers_background():
             executor.submit(run_single_scraper, scraper_cls, name)
 
 
-@router.post("/run-scrapers", status_code=202)
+@router.post("/scrap-offers", status_code=202)
 def trigger_scrapers(background_tasks: BackgroundTasks):
     """
     Endpoint para disparar la ingesta de todos los scrapers en paralelo en segundo plano.
@@ -176,8 +176,8 @@ def trigger_scrapers(background_tasks: BackgroundTasks):
     }
 
 
-@router.post("/process-queue")
+@router.post("/analyze-offers")
 def trigger_processing_queue(session: Session = Depends(get_session)):
     """Ejecuta el procesamiento por lotes de todas las ofertas 'Discovered' respetando el PAUSE_BETWEEN_REQUEST."""
-    result = process_discovered_jobs(session)
+    result = analyze_discovered_jobs(session)
     return result
