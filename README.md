@@ -64,3 +64,7 @@ If you want to run everything locally using models like qwen2.5:7b:
     ```bash
     bash pull-ollama-models.sh
     ```
+    Or:
+    ```bash
+    docker exec -it ollama_service ollama pull [model]
+    ```
