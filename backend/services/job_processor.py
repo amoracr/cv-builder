@@ -16,11 +16,11 @@ def analyze_discovered_jobs(session: Session) -> dict:
     # Obtenemos el engine directamente de la sesión actual de FastAPI
     engine = session.bind
 
-    # Consultar ofertas 'Discovered' ordenadas por ID de forma ascendente
+    # Consultar ofertas 'Discovered' ordenadas por updated_at de forma ascendente
     statement = (
         select(JobOffer)
         .where(JobOffer.status == "Discovered")
-        .order_by(JobOffer.id.asc())
+        .order_by(JobOffer.updated_at.asc())
     )
     discovered_jobs = session.exec(statement).all()
 
@@ -34,12 +34,12 @@ def analyze_discovered_jobs(session: Session) -> dict:
     processed_count = 0
     approved_count = 0
     discarded_count = 0
+    manual_review_count = 0
 
     for job in discovered_jobs:
         try:
             # Guardamos los datos básicos antes de llamar a la IA
             job_id = job.id
-            job_title = job.title
             job_description = job.description
 
             if not job_description or len(job_description.strip()) < 20:
@@ -52,9 +52,13 @@ def analyze_discovered_jobs(session: Session) -> dict:
                 match_pct = eval_result.match_percentage
                 reasoning = eval_result.reasoning
 
-                if eval_result.should_apply and match_pct >= 80:
+                # Actualizar contadores según el nuevo estado devuelto por el LLM
+                if match_pct >= 80:
                     new_status = "to_apply"
                     approved_count += 1
+                elif 60 <= match_pct < 80:
+                    new_status = "manual_review"
+                    manual_review_count += 1
                 else:
                     new_status = "Discarded"
                     discarded_count += 1
@@ -80,6 +84,7 @@ def analyze_discovered_jobs(session: Session) -> dict:
         "status": "success",
         "processed_count": processed_count,
         "to_apply_count": approved_count,
+        "to_manual_review": manual_review_count,
         "discarded_count": discarded_count,
     }
 

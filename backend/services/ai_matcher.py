@@ -1,8 +1,5 @@
-from backend.llm.LLMProvider import (
-    AtsOptimizedCv,
-    JobMatchAnalysis,
-    get_llm_provider,
-)
+from llm.LLMProvider import get_llm_provider
+from llm.schemas import AtsOptimizedCv, JobMatchAnalysis
 
 # Instancia global que utilizará el resto de la aplicación
 _provider = get_llm_provider()
