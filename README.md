@@ -52,9 +52,9 @@ If you prefer using Gemini (cloud execution), you still use your `docker-compose
 
 ### Option B: Using Local LLMs with Ollama
 
-If you want to run everything locally using models like qwen2.5:7b:
+If you want to run everything locally using models like qwen2.5:3b:
 
-1. Ensure your .env file is configured with LLM_ENGINE=ollama and your target model (OLLAMA_MODEL=qwen2.5:7b).
+1. Ensure your .env file is configured with LLM_ENGINE=ollama and your target model (OLLAMA_MODEL=qwen2.5:3b).
 2. Verify that you have configured your docker-compose.override.yml following the hardware instructions provided in the example file.
 3. Build and start the containers (Docker Compose will automatically pick up your override file and spin up both the backend app and the Ollama service):
     ```bash
