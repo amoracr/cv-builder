@@ -1,10 +1,10 @@
 import os
 
-from base import BaseLLMProvider
-from claude import ClaudeProvider
-from gemini import GeminiProvider
-from ollama import OllamaProvider
-from openai import OpenAIProvider
+from .base import BaseLLMProvider
+from .claude import ClaudeProvider
+from .gemini import GeminiProvider
+from .ollama import OllamaProvider
+from .openai import OpenAIProvider
 
 
 def get_llm_provider() -> BaseLLMProvider:

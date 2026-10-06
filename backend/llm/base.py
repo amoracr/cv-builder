@@ -13,17 +13,16 @@ class BaseLLMProvider(ABC):
         )
         self.evaluate_job_tokens = int(os.getenv("EVALUATE_JOB_TOKENS", "256"))
         self.evaluate_job_prompt = """[INSTRUCTIONS]
-        You are a strict, critical technical recruiter. Do NOT be overly generous. 
+        You are a strict, critical technical recruiter. DO NOT BE OVERLY GENEROUS.
         Evaluate the CANDIDATE CV against the JOB DESCRIPTION using a strict matching criteria:
         1. Start from 0%. Add points ONLY for direct, exact matches in core stack, experience years, and required domain.
         2. SUBSTANTIALLY PENALIZE missing mandatory requirements, seniorities, or core frameworks.
         3. PENALIZE if location is not remote or candidate should relocate to job location.
         4. Compute a realistic match_percentage (0-100). Be diverse: if it's a poor fit, it should score 30% to 50%. Do not default to 85%.
-        5. Set 'should_apply' to true ONLY if match_percentage >= 80, otherwise false.
-        6. 'matching_techs': List ONLY core overlapping tech (max 6).
-        7. 'missing_techs': List missing critical requirements (max 5).
-        8. 'reasoning': Write a single direct sentence in Spanish explaining the score. STRICTLY under 80 words. 
-        9. DO NOT INCLUDE ANY PERSONAL INFORMATION.
+        5. 'matching_techs': List ONLY core overlapping tech (max 6).
+        6. 'missing_techs': List missing critical requirements (max 5).
+        7. 'reasoning': Write a single direct sentence in Spanish explaining the score. STRICTLY under 80 words. 
+        8. DO NOT INCLUDE ANY PERSONAL INFORMATION IN THE REASONING.
 
         ### CANDIDATE CV
         {cv_text}

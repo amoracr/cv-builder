@@ -1,6 +1,8 @@
+import os
+
 from .base import BaseLLMProvider
 from .schemas import AtsOptimizedCv, JobMatchAnalysis
-import os
+
 
 class GeminiProvider(BaseLLMProvider):
     def __init__(self):

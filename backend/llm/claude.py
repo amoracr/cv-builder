@@ -1,7 +1,7 @@
 import os
 
-from base import BaseLLMProvider
-from schemas import AtsOptimizedCv, JobMatchAnalysis
+from .base import BaseLLMProvider
+from .schemas import AtsOptimizedCv, JobMatchAnalysis
 
 
 class ClaudeProvider(BaseLLMProvider):

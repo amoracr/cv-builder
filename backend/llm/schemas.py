@@ -1,9 +1,13 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
 class JobMatchAnalysis(BaseModel):
     match_percentage: int = Field(
-        description="Porcentaje de coincidencia del 0 al 100 basado estrictamente en el CV y los requisitos."
+        description="Porcentaje de coincidencia del 0 al 100 basado estrictamente en el CV y los requisitos.",
+        ge=0,
+        le=100
     )
     matching_techs: list[str] = Field(
         description="Tecnologías o habilidades del puesto que SÍ están presentes en el CV.",
@@ -15,10 +19,7 @@ class JobMatchAnalysis(BaseModel):
     )
     reasoning: str = Field(
         description="Breve justificación de por qué se le asigna este porcentaje de match.",
-        max_length=16384,
-    )
-    should_apply: bool = Field(
-        description="True si el match_percentage es mayor o igual a 80, False en caso contrario."
+        max_length=1024,
     )
 
 
