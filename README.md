@@ -5,7 +5,7 @@ A modular Python/FastAPI backend designed to scrape multiple job sources, store 
 ## Features
 - **Multi-source Scraper**: Modular architecture for platforms like Wellfound, We Work Remotely, and company career pages.
 - **Database Tracking**: Persistent storage using SQLite and SQLModel to prevent duplicate applications.
-- **AI-Driven Matching & Adaptation**: Supports multi-provider AI evaluation (choose between **Gemini** in the cloud or local LLMs via **Ollama**) to analyze job requirements against your core CV.
+- **AI-Driven Matching & Adaptation**: Supports multi-provider AI evaluation (choose between **Claude**, **Gemini** and **OpenAI**  in the cloud or local LLMs via **Ollama**) to analyze job requirements against your core CV.
 - **Markdown-Based CV**: Your base CV must be a clean Markdown file (`cv.md`), and it will included in Docker as a mount point.
 - **ATS-Optimized PDF Generator**: Renders clean, text-selectable PDF resumes without formatting blocks that break ATS parsers.
 
@@ -20,7 +20,7 @@ The application uses an environment file to manage configurations.
    ```bash
    cp env.example .env
    ```
-3. Open your .env file and configure it for only one provider at a time (LLM_ENGINE=gemini or LLM_ENGINE=ollama).
+3. Open your .env file and configure it for only one provider at a time (LLM_ENGINE=gemini, LLM_ENGINE=ollama, LLM_ENGINE=claude, and LLM_ENGINE=openai).
 
 ## 2. Docker Override Setup (docker-compose.override.yml)
 
