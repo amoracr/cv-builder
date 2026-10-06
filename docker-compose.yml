@@ -3,11 +3,12 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile.dev
+      args:
+        - LLM_ENGINE=${LLM_ENGINE}
     container_name: job_automation_bot
     volumes:
       - ./backend:/app
       - ./backend/data:/app/data
-      # /path/to/cv-file.md:/app/data/cv.md:ro MUST BE DEFINED IN docker-compose.override.yml
     env_file:
       - .env
     ports:
