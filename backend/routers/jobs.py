@@ -53,7 +53,7 @@ def List_jobs(
 @router.get("/", response_model=List[JobOffer])
 def get_jobs(session: Session = Depends(get_session)):
     """Obtiene todas las ofertas de empleo registradas."""
-    jobs = session.exec(select(JobOffer)).all()
+    jobs = session.exec(select(JobOffer).order_by(JobOffer.created_at.asc())).all()
     return jobs
 
 
