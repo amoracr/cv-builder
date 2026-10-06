@@ -1,8 +1,6 @@
 fastapi
 feedparser
-google-genai
 httpx
-ollama
 pydantic
 python-dotenv
 requests

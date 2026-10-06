@@ -5,6 +5,9 @@ FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Declaramos el argumento que vendrá desde docker-compose (por defecto ollama si no se especifica)
+ARG LLM_ENGINE=ollama
+
 # Directorio de trabajo dentro del contenedor
 WORKDIR /app
 
@@ -21,12 +24,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiamos primero el archivo de dependencias
+# Copiamos el requirements base (FastAPI, SQLModel, Pydantic, etc.)
 COPY requirements.txt .
 
-# Actualizamos pip e instalamos las dependencias de Python
-RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements.txt
+# Copiamos todos los requirements específicos de los proveedores que tengas
+COPY requirements-*.txt ./
+
+# Actualizamos pip e instalamos primero las dependencias base
+RUN pip install --no-cache-dir --upgrade pip
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Instalamos de forma condicional el requirements del motor seleccionado (ej: requirements-gemini.txt)
+RUN if [ -f "requirements-${LLM_ENGINE}.txt" ]; then \
+        echo "Instalando dependencias para el motor: ${LLM_ENGINE}" && \
+        pip install --no-cache-dir -r requirements-${LLM_ENGINE}.txt; \
+    else \
+        echo "No se encontró un archivo de requerimientos específico para '${LLM_ENGINE}', omitiendo..."; \
+    fi
 
 # Copiamos el resto del código del backend
 COPY . .
@@ -35,5 +49,4 @@ COPY . .
 EXPOSE 8080
 
 # Comando para arrancar FastAPI con hot-reload 
-# (Nota: cambiamos app.main:app por main:app al quitar la carpeta app)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--reload"]
