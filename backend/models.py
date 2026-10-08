@@ -1,4 +1,5 @@
 from datetime import datetime
+from enum import StrEnum
 from typing import Optional
 from zoneinfo import ZoneInfo
 
@@ -6,6 +7,18 @@ from sqlalchemy import event
 from sqlmodel import Column, Field, Relationship, SQLModel, Text
 
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
+
+
+class JobStatus(StrEnum):
+    DISCOVERED = "discovered"
+    DISCARDED = "discarded"
+    MANUAL_REVIEW = "manual_review"
+    TO_APPLY = "to_apply"
+    APPLIED = "applied"
+    WAITING = "waiting"
+    INTERVIEWING = "interviewing"
+    GHOSTED = "ghosted"
+    OFFERED = "offered"
 
 
 class Company(SQLModel, table=True):
@@ -37,9 +50,7 @@ class JobOffer(SQLModel, table=True):
     description: Optional[str] = Field(default=None, sa_column=Column(Text))
 
     # Estados y clasificación
-    status: str = Field(
-        default="Discovered"
-    )  # Discovered, Approved, Discarded, Applied, Archived
+    status: JobStatus = Field(default=JobStatus.DISCOVERED)
     sector: str = Field(default="private")  # "private" o "public"
     role: Optional[str] = Field(default="General", index=True)
 

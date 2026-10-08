@@ -1,7 +1,7 @@
 import os
 import time
 
-from models import JobOffer, TailoredCV
+from models import JobOffer, TailoredCV, JobStatus
 from services.ai_matcher import evaluate_job_offer, generate_ats_cv
 from sqlmodel import Session, select
 
@@ -19,7 +19,7 @@ def analyze_discovered_jobs(session: Session) -> dict:
     # Consultar ofertas 'Discovered' ordenadas por updated_at de forma ascendente
     statement = (
         select(JobOffer)
-        .where(JobOffer.status == "Discovered")
+        .where(JobOffer.status == JobStatus.DISCOVERED)
         .order_by(JobOffer.updated_at.asc())
     )
     discovered_jobs = session.exec(statement).all()
@@ -43,7 +43,7 @@ def analyze_discovered_jobs(session: Session) -> dict:
             job_description = job.description
 
             if not job_description or len(job_description.strip()) < 20:
-                new_status = "Discarded"
+                new_status = JobStatus.DISCARDED
                 reasoning = "Descripción vacía o insuficiente para evaluar."
                 match_pct = 0
             else:
@@ -54,13 +54,13 @@ def analyze_discovered_jobs(session: Session) -> dict:
 
                 # Actualizar contadores según el nuevo estado devuelto por el LLM
                 if match_pct >= 80:
-                    new_status = "to_apply"
+                    new_status = JobStatus.TO_APPLY
                     approved_count += 1
                 elif 60 <= match_pct < 80:
-                    new_status = "manual_review"
+                    new_status = JobStatus.MANUAL_REVIEW
                     manual_review_count += 1
                 else:
-                    new_status = "Discarded"
+                    new_status = JobStatus.DISCARDED
                     discarded_count += 1
 
             # Abrimos una mini-sesión aislada para guardar el resultado de esta oferta
@@ -99,7 +99,7 @@ def generate_ats_cvs_for_approved(session: Session) -> dict:
     # Consultar ofertas aprobadas ordenadas por ID ascendente
     statement = (
         select(JobOffer)
-        .where(JobOffer.status == "to_apply")
+        .where(JobOffer.status == JobStatus.TO_APPLY)
         .order_by(JobOffer.id.asc())
     )
     approved_jobs = session.exec(statement).all()
