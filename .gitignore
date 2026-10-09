@@ -23,6 +23,9 @@ backend/data/*
 .docker/
 docker-compose.override.yml
 
+# --- NodeJs ---
+node_modules/
+
 # --- Editors & IDEs ---
 
 ## Visual Studio Code
