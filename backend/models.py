@@ -1,6 +1,6 @@
+import enum
 from datetime import datetime
-from enum import StrEnum
-from typing import Optional
+from typing import Optional, List
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import event
@@ -9,7 +9,7 @@ from sqlmodel import Column, Field, Relationship, SQLModel, Text
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
 
-class JobStatus(StrEnum):
+class JobStatus(str, enum.Enum):
     DISCOVERED = "discovered"
     DISCARDED = "discarded"
     MANUAL_REVIEW = "manual_review"
@@ -43,6 +43,19 @@ class TailoredCV(SQLModel, table=True):
     job_offer: Optional["JobOffer"] = Relationship(back_populates="tailored_cv")
 
 
+class JobEmail(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    job_offer_id: int = Field(foreign_key="joboffer.id", index=True)
+
+    subject: str
+    sender: str
+    content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    received_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
+
+    # Relación inversa
+    job_offer: Optional["JobOffer"] = Relationship(back_populates="emails")
+
+
 class JobOffer(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     title: str
@@ -71,6 +84,10 @@ class JobOffer(SQLModel, table=True):
     source: Optional[JobSource] = Relationship(back_populates="jobs")
     tailored_cv: Optional[TailoredCV] = Relationship(
         back_populates="job_offer", sa_relationship_kwargs={"uselist": False}
+    )
+    emails: List[JobEmail] = Relationship(
+        back_populates="job_offer",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
     )
 
 
