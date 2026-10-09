@@ -11,15 +11,20 @@
         </div>
         <div class="header-actions">
           <a :href="job.url" target="_blank" class="btn-external">Ver oferta original ↗</a>
-          <!-- Botón para abrir el formulario de correo -->
-          <button @click="toggleEmailForm" class="btn-action primary">
+          
+          <!-- El botón solo se muestra si el trabajo NO está en un estado cerrado -->
+          <button 
+            v-if="!isJobClosed" 
+            @click="toggleEmailForm" 
+            class="btn-action primary"
+          >
             {{ showEmailForm ? 'Cancelar' : '+ Registrar Correo / Estado' }}
           </button>
         </div>
       </header>
 
-      <!-- Formulario para agregar correo y cambiar estado -->
-      <div v-if="showEmailForm" class="email-form-section">
+      <!-- Formulario para agregar correo y cambiar estado (también se oculta por seguridad si se cierra) -->
+      <div v-if="showEmailForm && !isJobClosed" class="email-form-section">
         <h3>Registrar Respuesta de Correo</h3>
         <form @submit.prevent="submitEmailForm" class="email-form">
           <div class="form-group">
@@ -32,29 +37,26 @@
               <option value="waiting">Waiting</option>
               <option value="interviewing">Interviewing</option>
               <option value="offered">Offered</option>
-              <option value="discarded">Discarded</option>
-              <option value="ghosted">Ghosted</option>
+              <option value="discarded">Discarded (Rechazado)</option>
               <option value="rejected">Rejected</option>
+              <option value="ghosted">Ghosted</option>
               <option value="hired">Hired</option>
             </select>
           </div>
 
           <div class="form-group">
             <label>Asunto del Correo:</label>
-            <input v-model="emailForm.subject" type="text" class="form-control"
-              placeholder="Ej. Update on Your Application Process" required />
+            <input v-model="emailForm.subject" type="text" class="form-control" placeholder="Ej. Update on Your Application Process" required />
           </div>
 
           <div class="form-group">
             <label>Remitente:</label>
-            <input v-model="emailForm.sender" type="text" class="form-control"
-              placeholder="Ej. Recruiter <recruiter@company.com>" required />
+            <input v-model="emailForm.sender" type="text" class="form-control" placeholder="Ej. Recruiter <recruiter@company.com>" required />
           </div>
 
           <div class="form-group">
             <label>Contenido del Correo:</label>
-            <textarea v-model="emailForm.content" rows="5" class="form-control"
-              placeholder="Pega el texto del correo aquí..." required></textarea>
+            <textarea v-model="emailForm.content" rows="5" class="form-control" placeholder="Pega el texto del correo aquí..." required></textarea>
           </div>
 
           <button type="submit" class="btn-submit" :disabled="submitting">
@@ -63,6 +65,7 @@
         </form>
       </div>
 
+      <!-- El resto de tus secciones (IA, Descripción, Historial de Correos, etc.) se mantienen igual -->
       <div class="section">
         <h3>Análisis de IA (Match: {{ job.match_percentage }}%)</h3>
         <p class="reasoning">{{ job.ai_reasoning || 'Sin análisis previo.' }}</p>
@@ -73,15 +76,14 @@
         <div class="description-box" v-html="job.description || 'Sin descripción detallada.'"></div>
       </div>
 
-      <!-- Sección del Historial de Correos -->
       <div class="section emails-section">
         <h3>Historial de Correos Recibidos ({{ job.emails?.length || 0 }})</h3>
-
+        
         <div v-if="job.emails && job.emails.length > 0" class="emails-list">
           <div v-for="email in job.emails" :key="email.id" class="email-item">
             <div class="email-meta">
-              <strong>Asunto:</strong> {{ email.subject }} |
-              <strong>De:</strong> {{ email.sender }}
+              <strong>Asunto:</strong> {{ email.subject }} | 
+              <strong>De:</strong> {{ email.sender }} 
               <span class="email-date">({{ formatDate(email.received_at) }})</span>
             </div>
             <div class="email-content">{{ email.content }}</div>
@@ -98,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
@@ -119,14 +121,25 @@ const emailForm = ref({
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
+// Propiedad computada para detectar si el estado está cerrado
+const isJobClosed = computed(() => {
+  if (!job.value || !job.value.status) return false
+  const closedStatuses = ['rejected', 'ghosted', 'discarded', 'hired']
+  return closedStatuses.includes(job.value.status.toLowerCase())
+})
+
 const fetchJobDetail = async () => {
   loading.value = true
   try {
     const response = await fetch(`${API_URL}/jobs/${jobId}`)
     if (response.ok) {
       job.value = await response.json()
-      // Mantener por defecto el estado actual de la oferta en el selector
       emailForm.value.status = job.value.status
+      
+      // Si la oferta se carga y está cerrada, asegurarnos de cerrar el formulario
+      if (isJobClosed.value) {
+        showEmailForm.value = false
+      }
     }
   } catch (error) {
     console.error('Error al cargar el detalle de la oferta:', error)
@@ -151,10 +164,8 @@ const submitEmailForm = async () => {
     })
 
     if (response.ok) {
-      // Limpiar y ocultar formulario, y recargar el detalle para ver el correo nuevo y el estatus cambiado
       showEmailForm.value = false
-      emailForm.value = { status: 'discarded', subject: '', sender: '', content: '' }
-      await fetchJobDetail()
+      await fetchJobDetail() // Recarga los datos y evaluará automáticamente si el botón debe ocultarse con el nuevo estado
     } else {
       console.error('Error al registrar el correo')
     }
