@@ -4,8 +4,15 @@ from typing import List
 from zoneinfo import ZoneInfo
 
 from database import get_session
-from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response
-from models import Company, JobOffer, JobOfferCreate, JobSource
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
+from models import (
+    Company,
+    JobOffer,
+    JobOfferCreate,
+    JobOfferDetailPublic,
+    JobOfferPublic,
+    JobSource,
+)
 from scrapers.get_on_board import GetOnBoardScraper
 from scrapers.jobicy import JobicyScraper
 from scrapers.remote_ok import RemoteOKScraper
@@ -19,7 +26,7 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
 
-@router.head("/jobs/", status_code=200)
+@router.head("/", status_code=200)
 def count_jobs_head(response: Response, session: Session = Depends(get_session)):
     """
     Método HEAD para el recurso /jobs/.
@@ -31,29 +38,10 @@ def count_jobs_head(response: Response, session: Session = Depends(get_session))
     return
 
 
-@router.get("/jobs/")
-def List_jobs(
-    role: str | None = Query(
-        default=None, description="Ej: wordpress developer, php developer"
-    ),
-    sector: str | None = Query(default=None, description="private / public"),
-    session: Session = Depends(get_session),
-):
-    statement = select(JobOffer)
-
-    if role:
-        statement = statement.where(JobOffer.role.ilike(f"%{role}%"))
-
-    if sector:
-        statement = statement.where(JobOffer.sector == sector)
-
-    return session.exec(statement).all()
-
-
-@router.get("/", response_model=List[JobOffer])
+@router.get("/", response_model=List[JobOfferPublic])
 def get_jobs(session: Session = Depends(get_session)):
-    """Obtiene todas las ofertas de empleo registradas."""
-    jobs = session.exec(select(JobOffer).order_by(JobOffer.created_at.asc())).all()
+    statement = select(JobOffer).order_by(JobOffer.updated_at.desc())
+    jobs = session.exec(statement).all()
     return jobs
 
 
@@ -96,6 +84,12 @@ def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
     session.refresh(db_job)
     return db_job
 
+@router.get("/{job_id}", response_model=JobOfferDetailPublic)
+def get_job_detail(job_id: int, session: Session = Depends(get_session)):
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Oferta de empleo no encontrada")
+    return job
 
 @router.post("/archive-expired")
 def archive_expired_jobs(session: Session = Depends(get_session)):

@@ -105,3 +105,32 @@ class JobOfferCreate(SQLModel):
     sector: Optional[str] = "private"  # NUEVO: por defecto privada
     company_name: Optional[str] = "Manual"
     source_name: Optional[str] = "Direct Message"
+
+class CompanyPublic(SQLModel):
+    id: Optional[int] = None
+    name: str
+
+
+class JobOfferPublic(SQLModel):
+    id: Optional[int] = None
+    title: str
+    url: str
+    status: str
+    match_percentage: Optional[int] = None
+    ai_reasoning: Optional[str] = None
+    updated_at: datetime
+    
+    # Esto permite que el frontend lea directamente job.company.name
+    company: Optional[CompanyPublic] = None
+
+class JobEmailPublic(SQLModel):
+    id: Optional[int] = None
+    subject: str
+    sender: str
+    content: Optional[str] = None
+    received_at: datetime
+
+# Schema extendido para el detalle completo de la oferta
+class JobOfferDetailPublic(JobOfferPublic):
+    description: Optional[str] = None
+    emails: List[JobEmailPublic] = []
