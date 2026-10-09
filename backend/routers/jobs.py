@@ -7,6 +7,8 @@ from database import get_session
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
 from models import (
     Company,
+    EmailRegisterRequest,
+    JobEmail,
     JobOffer,
     JobOfferCreate,
     JobOfferDetailPublic,
@@ -84,12 +86,47 @@ def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
     session.refresh(db_job)
     return db_job
 
+
 @router.get("/{job_id}", response_model=JobOfferDetailPublic)
 def get_job_detail(job_id: int, session: Session = Depends(get_session)):
     job = session.get(JobOffer, job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Oferta de empleo no encontrada")
     return job
+
+
+@router.post("/{job_id}/register-email")
+def register_job_email(
+    job_id: int, payload: EmailRegisterRequest, session: Session = Depends(get_session)
+):
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Oferta no encontrada")
+
+    # 1. Guardar el correo en la tabla relacional JobEmail
+    new_email = JobEmail(
+        job_offer_id=job.id,
+        subject=payload.subject,
+        sender=payload.sender,
+        content=payload.content,
+        received_at=datetime.now(COSTA_RICA_TZ),
+    )
+    session.add(new_email)
+
+    # 2. Actualizar el estado de la oferta con el parámetro recibido del frontend
+    job.status = payload.status
+    job.updated_at = datetime.now(COSTA_RICA_TZ)
+
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+
+    return {
+        "message": "Correo registrado y estado actualizado exitosamente",
+        "job_id": job.id,
+        "new_status": job.status,
+    }
+
 
 @router.post("/archive-expired")
 def archive_expired_jobs(session: Session = Depends(get_session)):

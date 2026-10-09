@@ -1,8 +1,9 @@
 import enum
 from datetime import datetime
-from typing import Optional, List
+from typing import List, Optional
 from zoneinfo import ZoneInfo
 
+from pydantic import BaseModel
 from sqlalchemy import event
 from sqlmodel import Column, Field, Relationship, SQLModel, Text
 
@@ -19,6 +20,8 @@ class JobStatus(str, enum.Enum):
     INTERVIEWING = "interviewing"
     GHOSTED = "ghosted"
     OFFERED = "offered"
+    REJECTED = "rejected"
+    HIRED = "hired"
 
 
 class Company(SQLModel, table=True):
@@ -134,3 +137,9 @@ class JobEmailPublic(SQLModel):
 class JobOfferDetailPublic(JobOfferPublic):
     description: Optional[str] = None
     emails: List[JobEmailPublic] = []
+
+class EmailRegisterRequest(BaseModel):
+    status: JobStatus  # Recibe el nuevo estado (ej: "discarded", "interviewing", etc.)
+    subject: str
+    sender: str
+    content: str
