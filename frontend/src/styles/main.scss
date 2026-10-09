@@ -1,0 +1,10 @@
+@use 'variables' as *;
+@use 'dashboard';
+@use 'detail';
+
+body {
+  background-color: $bg-color;
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  color: $text-main;
+}

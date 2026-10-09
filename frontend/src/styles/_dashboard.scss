@@ -1,0 +1,136 @@
+@use 'variables' as *;
+
+.job-dashboard {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    .btn-refresh {
+      padding: 8px 16px;
+      background: $primary-color;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s;
+
+      &:hover {
+        opacity: 0.9;
+      }
+    }
+  }
+
+  .loading {
+    text-align: center;
+    color: $text-muted;
+    font-size: 1.1rem;
+    margin-top: 40px;
+  }
+
+  /* Tabla Estilo Cebra */
+  .table-container {
+    background: $card-bg;
+    border: 1px solid $border-color;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+
+    .job-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.95rem;
+
+      th {
+        background-color: #f6f8fa;
+        color: $text-muted;
+        font-weight: 600;
+        padding: 12px 16px;
+        border-bottom: 1px solid $border-color;
+      }
+
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid $border-color;
+        color: $text-main;
+      }
+
+      /* Efecto Cebra */
+      tbody tr {
+        &:nth-child(even) {
+          background-color: #fbfcfd;
+        }
+
+        &:hover {
+          background-color: #f1f4f8;
+        }
+      }
+    }
+  }
+
+  /* Estados (Badges) */
+  .badge {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    background: #eee;
+    color: #333;
+
+    &.to_apply { background: #e6ffed; color: #22863a; }
+    &.discarded { background: #ffeef0; color: #cb2431; }
+    &.manual_review { background: #fffbdd; color: #b08800; }
+    &.applied { background: #f0f6fc; color: #0969da; }
+    &.waiting { background: #fff3cd; color: #856404; }
+    &.interviewing { background: #d1ecf1; color: #0c5460; }
+    &.offered { background: #d4edda; color: #155724; }
+    &.ghosted { background: #e2e3e5; color: #383d41; }
+  }
+
+  /* Botones de acción */
+  .actions {
+    display: flex;
+    gap: 8px;
+
+    .btn-action {
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid $border-color;
+      background: #fff;
+      color: $text-main;
+      transition: all 0.2s;
+
+      &.primary {
+        background: $primary-color;
+        color: white;
+        border-color: transparent;
+
+        &:hover {
+          opacity: 0.9;
+        }
+      }
+
+      &:hover:not(.primary) {
+        background: #f3f4f6;
+      }
+    }
+  }
+}
