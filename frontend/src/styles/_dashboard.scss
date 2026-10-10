@@ -23,6 +23,27 @@
       gap: 12px;
       align-items: center;
 
+      .btn-analyze {
+        padding: 8px 16px;
+        background: #6f42c1; // Color distintivo para IA (púrpura)
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: opacity 0.2s;
+
+        &:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        &:disabled {
+          background: #b19cd9;
+          cursor: not-allowed;
+        }
+      }
+
       .btn-scrap {
         padding: 8px 16px;
         background: #2ea44f;
@@ -121,14 +142,45 @@
     background: #eee;
     color: #333;
 
-    &.to_apply { background: #e6ffed; color: #22863a; }
-    &.discarded { background: #ffeef0; color: #cb2431; }
-    &.manual_review { background: #fffbdd; color: #b08800; }
-    &.applied { background: #f0f6fc; color: #0969da; }
-    &.waiting { background: #fff3cd; color: #856404; }
-    &.interviewing { background: #d1ecf1; color: #0c5460; }
-    &.offered { background: #d4edda; color: #155724; }
-    &.ghosted { background: #e2e3e5; color: #383d41; }
+    &.to_apply {
+      background: #e6ffed;
+      color: #22863a;
+    }
+
+    &.discarded {
+      background: #ffeef0;
+      color: #cb2431;
+    }
+
+    &.manual_review {
+      background: #fffbdd;
+      color: #b08800;
+    }
+
+    &.applied {
+      background: #f0f6fc;
+      color: #0969da;
+    }
+
+    &.waiting {
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    &.interviewing {
+      background: #d1ecf1;
+      color: #0c5460;
+    }
+
+    &.offered {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    &.ghosted {
+      background: #e2e3e5;
+      color: #383d41;
+    }
   }
 
   /* Botones de acción en la tabla */
