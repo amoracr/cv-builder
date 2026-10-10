@@ -14,6 +14,7 @@ from models import (
     JobOfferDetailPublic,
     JobOfferPublic,
     JobSource,
+    JobStatus,
 )
 from scrapers.get_on_board import GetOnBoardScraper
 from scrapers.jobicy import JobicyScraper
@@ -137,7 +138,9 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
     """
     now = datetime.now(COSTA_RICA_TZ)
 
-    statement = select(JobOffer).where(JobOffer.status != "archived")
+    statement = select(JobOffer).where(
+        JobOffer.status.in_([JobStatus.WAITING, JobStatus.APPLIED])
+    )
     jobs = session.exec(statement).all()
 
     archived_count = 0
@@ -151,7 +154,7 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
             or job.sector == "private"
             and days_inactive >= 30
         ):
-            job.status = "archived"
+            job.status = JobStatus.GHOSTED
             job.updated_at = now
             session.add(job)
             archived_count += 1
