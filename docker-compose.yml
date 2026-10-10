@@ -18,10 +18,11 @@ services:
   frontend:
     build:
       context: ./frontend
+      dockerfile: Dockerfile.dev
     container_name: job_automation_frontend
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     env_file:
         - .env
     ports:
@@ -30,3 +31,6 @@ services:
       - VITE_PORT=${FRONTEND_PORT:-5173}
       - VITE_BACKEND_URL=${VITE_BACKEND_URL:-http://localhost:8000}
     command: npm run dev -- --host 0.0.0.0 --port ${FRONTEND_PORT:-5173}
+
+volumes:
+  frontend_node_modules:
