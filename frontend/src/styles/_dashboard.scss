@@ -9,29 +9,76 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
     margin-bottom: 24px;
 
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin: 0;
+    /* Grupo Izquierdo (Título + Filtro) */
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+
+      h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+      }
+
+      .status-filter {
+        padding: 8px 12px;
+        background: #fff;
+        border: 1px solid $border-color;
+        border-radius: 6px;
+        color: $text-main;
+        font-size: 0.9rem;
+        font-family: inherit;
+        cursor: pointer;
+        outline: none;
+
+        &:focus {
+          border-color: $primary-color;
+          box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+        }
+      }
     }
 
-    /* Contenedor que agrupa los botones y los alinea correctamente a la derecha */
+    /* Grupo Derecho (Botones de acción) */
     .header-actions {
       display: flex;
-      gap: 12px;
+      gap: 10px;
       align-items: center;
 
-      .btn-analyze {
-        padding: 8px 16px;
-        background: #6f42c1; // Color distintivo para IA (púrpura)
+      .btn-archive {
+        padding: 8px 14px;
+        background: #6c757d;
         color: white;
         border: none;
         border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
+        transition: opacity 0.2s;
+
+        &:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        &:disabled {
+          background: #adb5bd;
+          cursor: not-allowed;
+        }
+      }
+
+      .btn-analyze {
+        padding: 8px 14px;
+        background: #6f42c1;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.85rem;
         transition: opacity 0.2s;
 
         &:hover:not(:disabled) {
@@ -45,14 +92,14 @@
       }
 
       .btn-scrap {
-        padding: 8px 16px;
+        padding: 8px 14px;
         background: #2ea44f;
         color: white;
         border: none;
         border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         transition: opacity 0.2s;
 
         &:hover:not(:disabled) {
@@ -66,14 +113,14 @@
       }
 
       .btn-refresh {
-        padding: 8px 16px;
+        padding: 8px 14px;
         background: $primary-color;
         color: white;
         border: none;
         border-radius: 6px;
         cursor: pointer;
         font-weight: 600;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         transition: background 0.2s;
 
         &:hover {

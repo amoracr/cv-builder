@@ -1,11 +1,9 @@
 <template>
   <div class="job-dashboard">
     <header class="header">
-      <h1>Job Automation Pipeline</h1>
-
-      <!-- Contenedor que agrupa los filtros y botones -->
-      <div class="header-actions">
-        <!-- Selector de Filtro por Estado -->
+      <!-- Grupo izquierdo: Título y Filtro -->
+      <div class="header-left">
+        <h1>Job Automation Pipeline</h1>
         <select v-model="selectedStatus" class="status-filter">
           <option value="">Todos los estados</option>
           <option value="discovered">Discovered</option>
@@ -20,13 +18,19 @@
           <option value="discarded">Discarded</option>
           <option value="hired">Hired</option>
         </select>
+      </div>
 
+      <!-- Grupo derecho: Botones de acción -->
+      <div class="header-actions">
         <button @click="fetchJobs" class="btn-refresh">Actualizar Lista</button>
         <button @click="triggerScraping" class="btn-scrap" :disabled="scraping">
-          {{ scraping ? 'Ejecutando scraping...' : '⚡ Buscar Nuevas Ofertas' }}
+          {{ scraping ? 'Ejecutando...' : '⚡ Buscar' }}
         </button>
         <button @click="triggerAnalyze" class="btn-analyze" :disabled="analyzing">
-          {{ analyzing ? 'Analizando con IA...' : '🤖 Analizar Ofertas Descubiertas' }}
+          {{ analyzing ? 'Analizando...' : '🤖 Analizar' }}
+        </button>
+        <button @click="triggerArchiveExpired" class="btn-archive" :disabled="archiving">
+          {{ archiving ? 'Archivando...' : '📦 Archivar' }}
         </button>
       </div>
     </header>
@@ -77,6 +81,7 @@ const loading = ref(false)
 const scraping = ref(false)
 const analyzing = ref(false)
 const selectedStatus = ref('') // Variable reactiva para el filtro por estado
+const archiving = ref(false) // Estado de carga para el botón de archivar
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
@@ -145,6 +150,31 @@ const triggerAnalyze = async () => {
     console.error('Error de red al intentar analizar las ofertas:', error)
   } finally {
     analyzing.value = false
+  }
+}
+
+// Función para llamar al endpoint de archivar ofertas expiradas
+const triggerArchiveExpired = async () => {
+  archiving.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/archive-expired`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const result = await response.json()
+      console.log('Ofertas expiradas archivadas con éxito:', result)
+      await fetchJobs() // Recarga la lista para reflejar los cambios de estado
+    } else {
+      console.error('Error al archivar las ofertas expiradas en el servidor')
+    }
+  } catch (error) {
+    console.error('Error de red al intentar archivar las ofertas:', error)
+  } finally {
+    archiving.value = false
   }
 }
 
