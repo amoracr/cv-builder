@@ -3,8 +3,24 @@
     <header class="header">
       <h1>Job Automation Pipeline</h1>
 
-      <!-- Contenedor que agrupa los botones -->
+      <!-- Contenedor que agrupa los filtros y botones -->
       <div class="header-actions">
+        <!-- Selector de Filtro por Estado -->
+        <select v-model="selectedStatus" class="status-filter">
+          <option value="">Todos los estados</option>
+          <option value="discovered">Discovered</option>
+          <option value="to_apply">To Apply</option>
+          <option value="applied">Applied</option>
+          <option value="waiting">Waiting</option>
+          <option value="interviewing">Interviewing</option>
+          <option value="offered">Offered</option>
+          <option value="manual_review">Manual Review</option>
+          <option value="rejected">Rejected</option>
+          <option value="ghosted">Ghosted</option>
+          <option value="discarded">Discarded</option>
+          <option value="hired">Hired</option>
+        </select>
+
         <button @click="fetchJobs" class="btn-refresh">Actualizar Lista</button>
         <button @click="triggerScraping" class="btn-scrap" :disabled="scraping">
           {{ scraping ? 'Ejecutando scraping...' : '⚡ Buscar Nuevas Ofertas' }}
@@ -17,6 +33,10 @@
 
     <div v-if="loading" class="loading">Cargando ofertas...</div>
 
+    <div v-else-if="filteredJobs.length === 0" class="loading">
+      No hay ofertas que coincidan con el estado seleccionado.
+    </div>
+
     <div v-else class="table-container">
       <table class="job-table">
         <thead>
@@ -28,7 +48,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="job in jobs" :key="job.id">
+          <!-- Usamos filteredJobs en lugar de jobs -->
+          <tr v-for="job in filteredJobs" :key="job.id">
             <td><strong>{{ job.company?.name || 'N/A' }}</strong></td>
             <td>
               <a href="#" @click.prevent="viewDetail(job.id)" class="job-title-link">
@@ -47,14 +68,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const jobs = ref([])
 const loading = ref(false)
-const scraping = ref(false) // <--- Asegúrate de tener esta línea declarada aquí
-const analyzing = ref(false) // Estado de carga para el botón de análisis
+const scraping = ref(false)
+const analyzing = ref(false)
+const selectedStatus = ref('') // Variable reactiva para el filtro por estado
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
@@ -71,6 +93,12 @@ const fetchJobs = async () => {
     loading.value = false
   }
 }
+
+// Propiedad computada para filtrar dinámicamente las ofertas
+const filteredJobs = computed(() => {
+  if (!selectedStatus.value) return jobs.value
+  return jobs.value.filter(job => job.status === selectedStatus.value)
+})
 
 const triggerScraping = async () => {
   scraping.value = true
@@ -96,7 +124,6 @@ const triggerScraping = async () => {
   }
 }
 
-// Función para llamar al endpoint de análisis por IA
 const triggerAnalyze = async () => {
   analyzing.value = true
   try {
@@ -110,7 +137,7 @@ const triggerAnalyze = async () => {
     if (response.ok) {
       const result = await response.json()
       console.log('Análisis finalizado con éxito:', result)
-      await fetchJobs() // Recarga la lista para reflejar los porcentajes de match o cambios
+      await fetchJobs()
     } else {
       console.error('Error al ejecutar el análisis en el servidor')
     }
@@ -143,6 +170,24 @@ onMounted(() => {
 
   &:hover {
     text-decoration: underline;
+  }
+}
+
+/* Estilo para el selector de estado en la cabecera */
+.status-filter {
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  color: $text-main;
+  font-size: 0.9rem;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+
+  &:focus {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
   }
 }
 </style>
