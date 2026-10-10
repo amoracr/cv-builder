@@ -20,30 +20,104 @@
       padding-bottom: 20px;
       margin-bottom: 24px;
 
-      h1 {
-        font-size: 1.6rem;
-        margin: 8px 0 4px 0;
+      .header-titles {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+
+        .badge {
+          font-size: 0.75rem;
+          padding: 4px 10px;
+          border-radius: 12px;
+          text-transform: uppercase;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          display: inline-block;
+          margin-bottom: 4px;
+
+          &.to_apply { background: #e6ffed; color: #22863a; }
+          &.discarded, &.rejected { background: #ffeef0; color: #cb2431; }
+          &.manual_review { background: #fffbdd; color: #b08800; }
+          &.applied { background: #f0f6fc; color: #0969da; }
+          &.waiting { background: #fff3cd; color: #856404; }
+          &.interviewing { background: #d1ecf1; color: #0c5460; }
+          &.offered { background: #d4edda; color: #155724; }
+          &.ghosted { background: #e2e3e5; color: #383d41; }
+          &.hired { background: #dafbe1; color: #116329; }
+          &.discovered { background: #f1f3f5; color: #495057; }
+        }
+
+        h1 {
+          font-size: 1.6rem;
+          margin: 0;
+          color: $text-main;
+        }
+
+        h2 {
+          font-size: 1.1rem;
+          color: $text-muted;
+          margin: 0;
+          font-weight: 500;
+        }
       }
 
-      h2 {
-        font-size: 1.1rem;
-        color: $text-muted;
-        margin: 0;
-        font-weight: 500;
-      }
+      .header-actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
 
-      .btn-external {
-        padding: 8px 14px;
-        background: #f6f8fa;
-        border: 1px solid $border-color;
-        border-radius: 6px;
-        color: $primary-color;
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.9rem;
+        .btn-external {
+          padding: 10px 14px;
+          background: #f6f8fa;
+          border: 1px solid $border-color;
+          border-radius: 8px;
+          color: $primary-color;
+          text-decoration: none;
+          font-weight: 600;
+          font-size: 0.9rem;
+          transition: background 0.2s ease;
 
-        &:hover {
-          background: #edf2f7;
+          &:hover {
+            background: #edf2f7;
+          }
+        }
+
+        /* Botón moderno y destacado para registrar correo */
+        .btn-register-email {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 16px;
+          background: linear-gradient(135deg, $primary-color 0%, darken($primary-color, 8%) 100%);
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba($primary-color, 0.25);
+          transition: all 0.2s ease-in-out;
+
+          svg {
+            stroke: currentColor;
+            transition: transform 0.2s ease;
+          }
+
+          &:hover {
+            background: linear-gradient(135deg, lighten($primary-color, 3%) 0%, darken($primary-color, 5%) 100%);
+            box-shadow: 0 4px 12px rgba($primary-color, 0.35);
+            transform: translateY(-1px);
+
+            svg {
+              transform: scale(1.1);
+            }
+          }
+
+          &:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba($primary-color, 0.2);
+          }
         }
       }
     }
@@ -132,12 +206,6 @@
       }
     }
   }
-}
-
-.header-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
 }
 
 .email-form-section {
