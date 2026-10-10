@@ -121,6 +121,7 @@ class JobOfferPublic(SQLModel):
     status: str
     match_percentage: Optional[int] = None
     ai_reasoning: Optional[str] = None
+    created_at: datetime
     updated_at: datetime
     
     # Esto permite que el frontend lea directamente job.company.name
