@@ -2,7 +2,14 @@
   <div class="job-dashboard">
     <header class="header">
       <h1>Job Automation Pipeline</h1>
-      <button @click="fetchJobs" class="btn-refresh">Actualizar Lista</button>
+
+      <!-- Contenedor que agrupa los botones -->
+      <div class="header-actions">
+        <button @click="triggerScraping" class="btn-scrap" :disabled="scraping">
+          {{ scraping ? 'Ejecutando scraping...' : '⚡ Buscar Nuevas Ofertas' }}
+        </button>
+        <button @click="fetchJobs" class="btn-refresh">Actualizar Lista</button>
+      </div>
     </header>
 
     <div v-if="loading" class="loading">Cargando ofertas...</div>
@@ -15,25 +22,20 @@
             <th>Puesto</th>
             <th>Estado</th>
             <th>Actualización</th>
-            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr v-for="job in jobs" :key="job.id">
             <td><strong>{{ job.company?.name || 'N/A' }}</strong></td>
             <td>
-              <a :href="job.url" target="_blank" class="job-title-link">{{ job.title }}</a>
+              <a href="#" @click.prevent="viewDetail(job.id)" class="job-title-link">
+                {{ job.title }}
+              </a>
             </td>
             <td>
               <span :class="['badge', job.status]">{{ job.status }}</span>
             </td>
             <td>{{ formatDate(job.updated_at) }}</td>
-            <td>
-              <div class="actions">
-                <button @click="viewDetail(job.id)" class="btn-action">Detalle</button>
-                <button @click="openAddEmailModal(job)" class="btn-action primary">+ Correo</button>
-              </div>
-            </td>
           </tr>
         </tbody>
       </table>
@@ -48,6 +50,8 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 const jobs = ref([])
 const loading = ref(false)
+const scraping = ref(false) // <--- Asegúrate de tener esta línea declarada aquí
+
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
 const fetchJobs = async () => {
@@ -64,6 +68,30 @@ const fetchJobs = async () => {
   }
 }
 
+const triggerScraping = async () => {
+  scraping.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/scrap-offers`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (response.ok) {
+      const result = await response.json()
+      console.log('Scraping finalizado con éxito:', result)
+      await fetchJobs()
+    } else {
+      console.error('Error al ejecutar el scraping en el servidor')
+    }
+  } catch (error) {
+    console.error('Error de red al intentar hacer scraping:', error)
+  } finally {
+    scraping.value = false
+  }
+}
+
 const formatDate = (dateString) => {
   if (!dateString) return '-'
   const date = new Date(dateString)
@@ -72,10 +100,6 @@ const formatDate = (dateString) => {
 
 const viewDetail = (id) => {
   router.push({ name: 'JobDetail', params: { id } })
-}
-
-const openAddEmailModal = (job) => {
-  console.log(`Agregar correo para la oferta: ${job.title}`)
 }
 
 onMounted(() => {
@@ -87,6 +111,7 @@ onMounted(() => {
 .job-title-link {
   color: $primary-color;
   text-decoration: none;
+
   &:hover {
     text-decoration: underline;
   }

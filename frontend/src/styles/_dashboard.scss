@@ -14,20 +14,50 @@
     h1 {
       font-size: 1.8rem;
       font-weight: 700;
+      margin: 0;
     }
 
-    .btn-refresh {
-      padding: 8px 16px;
-      background: $primary-color;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 0.2s;
+    /* Contenedor que agrupa los botones y los alinea correctamente a la derecha */
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
 
-      &:hover {
-        opacity: 0.9;
+      .btn-scrap {
+        padding: 8px 16px;
+        background: #2ea44f;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: opacity 0.2s;
+
+        &:hover:not(:disabled) {
+          opacity: 0.9;
+        }
+
+        &:disabled {
+          background: #94d3a2;
+          cursor: not-allowed;
+        }
+      }
+
+      .btn-refresh {
+        padding: 8px 16px;
+        background: $primary-color;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.9rem;
+        transition: background 0.2s;
+
+        &:hover {
+          opacity: 0.9;
+        }
       }
     }
   }
@@ -101,7 +131,7 @@
     &.ghosted { background: #e2e3e5; color: #383d41; }
   }
 
-  /* Botones de acción */
+  /* Botones de acción en la tabla */
   .actions {
     display: flex;
     gap: 8px;
