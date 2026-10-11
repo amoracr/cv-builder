@@ -41,6 +41,34 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
 
+def run_single_scraper(scraper_cls, name: str):
+    """Ejecuta un scraper individual de forma aislada"""
+    print(f"🎯 [Orquestador API] Iniciando proceso de {name}...")
+    try:
+        # Instanciamos el scraper sin pasarle la sesión (como está diseñado originalmente)
+        scraper = scraper_cls()
+        scraper.run()
+        print(f"✨ [Orquestador API] Proceso de {name} finalizado con éxito.")
+    except Exception as e:
+        print(f"❌ [Orquestador API] Error crítico en {name}: {e}")
+
+
+def run_scrapers_background():
+    """Ejecuta cada scraper de forma concurrente pero totalmente aislada"""
+    # Pasamos las clases, no instancias compartidas
+    scrapers_to_run = [
+        (WWRScraper, "We Work Remotely"),
+        (RemoteOKScraper, "Remote OK"),
+        (RemotiveScraper, "Remotive"),
+        (JobicyScraper, "Jobicy"),
+        (GetOnBoardScraper, "Get On Board"),
+    ]
+
+    with ThreadPoolExecutor(max_workers=len(scrapers_to_run)) as executor:
+        for scraper_cls, name in scrapers_to_run:
+            executor.submit(run_single_scraper, scraper_cls, name)
+
+
 @router.head("/", status_code=200)
 def count_jobs_head(response: Response, session: Session = Depends(get_session)):
     """
@@ -159,6 +187,66 @@ def get_job_statuses():
     return statuses
 
 
+@router.post("/archive-expired")
+def archive_expired_jobs(session: Session = Depends(get_session)):
+    """
+    Revisa todas las ofertas activas y las archiva si han superado el tiempo límite sin actualizaciones:
+    - Sector privado: 30 días desde updated_at
+    - Sector público: 360 días desde updated_at
+    """
+    now = datetime.now(COSTA_RICA_TZ)
+
+    statement = select(JobOffer).where(
+        JobOffer.status.in_([JobStatus.WAITING, JobStatus.APPLIED])
+    )
+    jobs = session.exec(statement).all()
+
+    archived_count = 0
+
+    for job in jobs:
+        days_inactive = (now - job.updated_at).days
+
+        if (
+            job.sector == "public"
+            and days_inactive >= 360
+            or job.sector == "private"
+            and days_inactive >= 30
+        ):
+            job.status = JobStatus.GHOSTED
+            job.updated_at = now
+            session.add(job)
+            archived_count += 1
+
+    if archived_count > 0:
+        session.commit()
+
+    return {
+        "message": "Rutina completada con éxito.",
+        "jobs_archived": archived_count,
+        "checked_at": now.isoformat(),
+    }
+
+
+@router.post("/scrap-offers", status_code=202)
+def trigger_scrapers(background_tasks: BackgroundTasks):
+    """
+    Endpoint para disparar la ingesta de todos los scrapers en paralelo en segundo plano.
+    """
+    background_tasks.add_task(run_scrapers_background)
+
+    return {
+        "message": "La sincronización con los portales de empleo ha sido iniciada en segundo plano en paralelo.",
+        "status": "processing",
+    }
+
+
+@router.post("/analyze-offers")
+def trigger_processing_queue(session: Session = Depends(get_session)):
+    """Ejecuta el procesamiento por lotes de todas las ofertas 'Discovered' respetando el PAUSE_BETWEEN_REQUEST."""
+    result = analyze_discovered_jobs(session)
+    return result
+
+
 @router.get("/{job_id}", response_model=JobOfferDetailPublic)
 def get_job_detail(job_id: int, session: Session = Depends(get_session)):
     job = session.get(JobOffer, job_id)
@@ -225,91 +313,3 @@ def register_job_email(
         "job_id": job.id,
         "email_id": new_email.id,
     }
-
-
-@router.post("/archive-expired")
-def archive_expired_jobs(session: Session = Depends(get_session)):
-    """
-    Revisa todas las ofertas activas y las archiva si han superado el tiempo límite sin actualizaciones:
-    - Sector privado: 30 días desde updated_at
-    - Sector público: 360 días desde updated_at
-    """
-    now = datetime.now(COSTA_RICA_TZ)
-
-    statement = select(JobOffer).where(
-        JobOffer.status.in_([JobStatus.WAITING, JobStatus.APPLIED])
-    )
-    jobs = session.exec(statement).all()
-
-    archived_count = 0
-
-    for job in jobs:
-        days_inactive = (now - job.updated_at).days
-
-        if (
-            job.sector == "public"
-            and days_inactive >= 360
-            or job.sector == "private"
-            and days_inactive >= 30
-        ):
-            job.status = JobStatus.GHOSTED
-            job.updated_at = now
-            session.add(job)
-            archived_count += 1
-
-    if archived_count > 0:
-        session.commit()
-
-    return {
-        "message": "Rutina completada con éxito.",
-        "jobs_archived": archived_count,
-        "checked_at": now.isoformat(),
-    }
-
-
-def run_single_scraper(scraper_cls, name: str):
-    """Ejecuta un scraper individual de forma aislada"""
-    print(f"🎯 [Orquestador API] Iniciando proceso de {name}...")
-    try:
-        # Instanciamos el scraper sin pasarle la sesión (como está diseñado originalmente)
-        scraper = scraper_cls()
-        scraper.run()
-        print(f"✨ [Orquestador API] Proceso de {name} finalizado con éxito.")
-    except Exception as e:
-        print(f"❌ [Orquestador API] Error crítico en {name}: {e}")
-
-
-def run_scrapers_background():
-    """Ejecuta cada scraper de forma concurrente pero totalmente aislada"""
-    # Pasamos las clases, no instancias compartidas
-    scrapers_to_run = [
-        (WWRScraper, "We Work Remotely"),
-        (RemoteOKScraper, "Remote OK"),
-        (RemotiveScraper, "Remotive"),
-        (JobicyScraper, "Jobicy"),
-        (GetOnBoardScraper, "Get On Board"),
-    ]
-
-    with ThreadPoolExecutor(max_workers=len(scrapers_to_run)) as executor:
-        for scraper_cls, name in scrapers_to_run:
-            executor.submit(run_single_scraper, scraper_cls, name)
-
-
-@router.post("/scrap-offers", status_code=202)
-def trigger_scrapers(background_tasks: BackgroundTasks):
-    """
-    Endpoint para disparar la ingesta de todos los scrapers en paralelo en segundo plano.
-    """
-    background_tasks.add_task(run_scrapers_background)
-
-    return {
-        "message": "La sincronización con los portales de empleo ha sido iniciada en segundo plano en paralelo.",
-        "status": "processing",
-    }
-
-
-@router.post("/analyze-offers")
-def trigger_processing_queue(session: Session = Depends(get_session)):
-    """Ejecuta el procesamiento por lotes de todas las ofertas 'Discovered' respetando el PAUSE_BETWEEN_REQUEST."""
-    result = analyze_discovered_jobs(session)
-    return result
