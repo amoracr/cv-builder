@@ -7,7 +7,7 @@ class JobMatchAnalysis(BaseModel):
     match_percentage: int = Field(
         description="Porcentaje de coincidencia del 0 al 100 basado estrictamente en el CV y los requisitos.",
         ge=0,
-        le=100
+        le=100,
     )
     matching_techs: list[str] = Field(
         description="Tecnologías o habilidades del puesto que SÍ están presentes en el CV.",
@@ -32,6 +32,13 @@ class AtsOptimizedCv(BaseModel):
             "(Resumen, Experiencia con viñetas de impacto, Habilidades, Educación)."
         )
     )
-    summary_of_changes: str = Field(
-        description="Breve explicación de los cambios clave realizados para destacar en esta oferta específica."
+
+
+class CoverLetterRequest(BaseModel):
+    cover_letter: str = Field(
+        description=(
+            "Carta de presentación profesional, persuasiva y redactada específicamente "
+            "para la oferta de empleo, conectando la experiencia real del candidato con los "
+            "requisitos del puesto."
+        )
     )
