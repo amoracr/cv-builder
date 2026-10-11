@@ -13,15 +13,20 @@ class BaseLLMProvider(ABC):
         )
         self.evaluate_job_tokens = int(os.getenv("EVALUATE_JOB_TOKENS", "256"))
         self.evaluate_job_prompt = """[INSTRUCTIONS]
-        You are a strict, critical technical recruiter. DO NOT BE OVERLY GENEROUS.
-        Evaluate the CANDIDATE CV against the JOB DESCRIPTION using a strict matching criteria:
-        1. Start from 0%. Add points ONLY for direct, exact matches in core stack, experience years, and required domain.
-        2. SUBSTANTIALLY PENALIZE missing mandatory requirements, seniorities, or core frameworks.
-        3. PENALIZE if location is not remote or candidate should relocate to job location.
-        4. Compute a realistic match_percentage (0-100). Be diverse: if it's a poor fit, it should score 30% to 50%. Do not default to 85%.
-        5. 'matching_techs': List ONLY core overlapping tech (max 6).
-        6. 'missing_techs': List missing critical requirements (max 5).
-        7. 'reasoning': Write a single direct sentence in Spanish explaining the score. STRICTLY under 80 words. 
+        You are a strict, critical technical recruiter and ATS evaluation engine. 
+        Evaluate the CANDIDATE CV against the JOB DESCRIPTION based on exact technical requirements, years of experience, and location constraints.
+
+        SCORING RULES:
+        1. BASE & TRANSFERABLE SKILLS: Start from 0%. Add points for direct matches or valid transferable ecosystem skills (e.g., Laravel/Yii/Django/FastAPI equivalences, Vue/React component paradigms). Do not penalize minor framework variations if core architectural competency is proven.
+        2. LOCATION & REMOTE CONSTRAINT: If the job description explicitly requires on-site presence, hybrid attendance, or relocation to a non-remote location where the candidate cannot work, the total match_percentage MUST BE CAPPED AT MAXIMUM 64%.
+        3. MANDATORY PENALTIES: Substantially penalize missing critical mandatory requirements or unmatched seniorities. 
+        4. SCORING DISTRIBUTION (Strict Calibration):
+        - 80 to 100: Exceptional match. Direct core stack, appropriate seniority, fully remote or matches location.
+        - 65 to 79: Moderate/Good match. Minor skill gaps or close alignment that requires human verification.
+        - 0 to 64: Poor fit, major skill gaps, or on-site/relocation constraint violation.
+        5. 'matching_techs': List ONLY core overlapping technologies found in both texts (max 6).
+        6. 'missing_techs': List missing critical requirements or deal-breakers (max 5).
+        7. 'reasoning': Write a single direct sentence in Spanish explaining the score and key factors. STRICTLY under 80 words.
         8. DO NOT INCLUDE ANY PERSONAL INFORMATION IN THE REASONING.
 
         ### CANDIDATE CV
@@ -54,10 +59,34 @@ class BaseLLMProvider(ABC):
         pass
 
     def clean_markdown_to_plain_text(self, markdown_content: str) -> str:
+        if not markdown_content:
+            return ""
+
+        # 1. Eliminar imágenes en markdown: ![alt](url)
         text = re.sub(r"!\[.*?\]\(.*?\)", "", markdown_content)
+
+        # 2. Convertir enlaces en markdown [texto](url) a solo texto
         text = re.sub(r"\[(.*?)\]\(.*?\)", r"\1", text)
+
+        # 3. Eliminar bloques de código completos
         text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-        text = re.sub(r"\n\s*\n", "\n\n", text)
+
+        # 4. Eliminar encabezados (ej: # H1, ## H2, ### H3) dejando solo el texto
+        text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
+
+        # 5. Eliminar líneas divisorias o horizontales (--- o ***)
+        text = re.sub(r"^\s*[-*_]{3,}\s*$", "", text, flags=re.MULTILINE)
+
+        # 6. Remover negritas y cursivas (**, *, __, _) conservando el texto interior
+        text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+        text = re.sub(r"(\*|_)(.*?)\1", r"\2", text)
+
+        # 7. Normalizar listas (quitar guiones o asteriscos al inicio de línea de las viñetas si lo deseas, o dejarlos)
+        # text = re.sub(r"^\s*[-*+]\s+", "", text, flags=re.MULTILINE)
+
+        # 8. Limpiar saltos de línea múltiples excesivos y dejar un formato limpio
+        text = re.sub(r"\n\s*\n+", "\n\n", text)
+
         return text.strip()
 
     def load_local_cv(self, file_path: str = "/app/data/cv.md") -> str:
