@@ -1,28 +1,13 @@
 <template>
   <div class="job-dashboard">
     <header class="header">
-      <!-- Grupo izquierdo: Título y Filtro -->
       <div class="header-left">
         <h1>Job Automation Pipeline</h1>
-        <select v-model="selectedStatus" class="status-filter">
-          <option value="">Todos los estados</option>
-          <option value="discovered">Discovered</option>
-          <option value="to_apply">To Apply</option>
-          <option value="applied">Applied</option>
-          <option value="waiting">Waiting</option>
-          <option value="interviewing">Interviewing</option>
-          <option value="offered">Offered</option>
-          <option value="manual_review">Manual Review</option>
-          <option value="rejected">Rejected</option>
-          <option value="ghosted">Ghosted</option>
-          <option value="discarded">Discarded</option>
-          <option value="hired">Hired</option>
-        </select>
       </div>
 
       <!-- Grupo derecho: Botones de acción -->
       <div class="header-actions">
-        <button @click="fetchJobs" class="btn-refresh">Actualizar Lista</button>
+        <button @click="refreshData" class="btn-refresh">Actualizar Lista</button>
         <button @click="triggerScraping" class="btn-scrap" :disabled="scraping">
           {{ scraping ? 'Ejecutando...' : '⚡ Buscar' }}
         </button>
@@ -35,38 +20,72 @@
       </div>
     </header>
 
+    <!-- Contadores superiores y filtro de estados alimentados desde el backend -->
+    <div class="status-counters-grid">
+      <div 
+        class="counter-card" 
+        :class="{ active: selectedStatus === '' }" 
+        @click="filterByStatus('')"
+      >
+        <span class="counter-title">Todas</span>
+        <span class="counter-value">{{ totalJobsCount }}</span>
+      </div>
+      <div 
+        v-for="st in availableStatuses" 
+        :key="st.value" 
+        class="counter-card"
+        :class="{ active: selectedStatus === st.value }" 
+        @click="filterByStatus(st.value)"
+      >
+        <span class="counter-title">{{ st.label }}</span>
+        <span class="counter-value">{{ statusCounts[st.value] || 0 }}</span>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading">Cargando ofertas...</div>
 
-    <div v-else-if="filteredJobs.length === 0" class="loading">
+    <div v-else-if="jobs.length === 0" class="loading">
       No hay ofertas que coincidan con el estado seleccionado.
     </div>
 
-    <div v-else class="table-container">
-      <table class="job-table">
-        <thead>
-          <tr>
-            <th>Empresa</th>
-            <th>Puesto</th>
-            <th>Estado</th>
-            <th>Actualización</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Usamos filteredJobs en lugar de jobs -->
-          <tr v-for="job in filteredJobs" :key="job.id">
-            <td><strong>{{ job.company?.name || 'N/A' }}</strong></td>
-            <td>
-              <a href="#" @click.prevent="viewDetail(job.id)" class="job-title-link">
-                {{ job.title }}
-              </a>
-            </td>
-            <td>
-              <span :class="['badge', job.status]">{{ job.status }}</span>
-            </td>
-            <td>{{ formatDate(job.updated_at) }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div v-else>
+      <div class="table-container">
+        <table class="job-table">
+          <thead>
+            <tr>
+              <th>Empresa</th>
+              <th>Puesto</th>
+              <th>Estado</th>
+              <th>Actualización</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="job in jobs" :key="job.id">
+              <td><strong>{{ job.company?.name || 'N/A' }}</strong></td>
+              <td>
+                <a href="#" @click.prevent="viewDetail(job.id)" class="job-title-link">
+                  {{ job.title }}
+                </a>
+              </td>
+              <td>
+                <span :class="['badge', job.status]">{{ job.status }}</span>
+              </td>
+              <td>{{ formatDate(job.updated_at) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Controles de Paginación -->
+      <div class="pagination-controls" v-if="totalPages > 1">
+        <button @click="changePage(page - 1)" :disabled="page <= 1" class="btn-page">
+          &laquo; Anterior
+        </button>
+        <span>Página {{ page }} de {{ totalPages }}</span>
+        <button @click="changePage(page + 1)" :disabled="page >= totalPages" class="btn-page">
+          Siguiente &raquo;
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -76,21 +95,67 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const availableStatuses = ref([])
+const statusCounts = ref({})
 const jobs = ref([])
+
 const loading = ref(false)
 const scraping = ref(false)
 const analyzing = ref(false)
-const selectedStatus = ref('') // Variable reactiva para el filtro por estado
-const archiving = ref(false) // Estado de carga para el botón de archivar
+const archiving = ref(false)
+
+// Paginación y Filtro
+const selectedStatus = ref('')
+const page = ref(1)
+const totalPages = ref(1)
+const pageSize = 20
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+
+const fetchStatuses = async () => {
+  try {
+    const response = await fetch(`${API_URL}/jobs/statuses`)
+    if (response.ok) {
+      availableStatuses.value = await response.json()
+    }
+  } catch (error) {
+    console.error('Error al cargar los estados:', error)
+  }
+}
+
+const fetchCounts = async () => {
+  try {
+    const response = await fetch(`${API_URL}/jobs/counts`)
+    if (response.ok) {
+      const data = await response.json()
+      const normalizedCounts = {}
+      for (const [key, value] of Object.entries(data)) {
+        normalizedCounts[key.toLowerCase()] = value
+      }
+      statusCounts.value = normalizedCounts
+    }
+  } catch (error) {
+    console.error('Error al cargar los contadores de estado:', error)
+  }
+}
+
+const totalJobsCount = computed(() => {
+  return Object.values(statusCounts.value).reduce((a, b) => a + b, 0)
+})
 
 const fetchJobs = async () => {
   loading.value = true
   try {
-    const response = await fetch(`${API_URL}/jobs`)
+    let url = `${API_URL}/jobs/?page=${page.value}&page_size=${pageSize}`
+    if (selectedStatus.value) {
+      url += `&status=${selectedStatus.value}`
+    }
+
+    const response = await fetch(url)
     if (response.ok) {
-      jobs.value = await response.json()
+      const data = await response.json()
+      jobs.value = data.jobs || []
+      totalPages.value = data.total_pages || 1
     }
   } catch (error) {
     console.error('Error al cargar las ofertas:', error)
@@ -99,28 +164,32 @@ const fetchJobs = async () => {
   }
 }
 
-// Propiedad computada para filtrar dinámicamente las ofertas
-const filteredJobs = computed(() => {
-  if (!selectedStatus.value) return jobs.value
-  return jobs.value.filter(job => job.status === selectedStatus.value)
-})
+const refreshData = async () => {
+  await Promise.all([fetchCounts(), fetchJobs()])
+}
+
+const filterByStatus = (status) => {
+  selectedStatus.value = status
+  page.value = 1
+  fetchJobs()
+}
+
+const changePage = (newPage) => {
+  if (newPage >= 1 && newPage <= totalPages.value) {
+    page.value = newPage
+    fetchJobs()
+  }
+}
 
 const triggerScraping = async () => {
   scraping.value = true
   try {
     const response = await fetch(`${API_URL}/jobs/scrap-offers`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     })
-
     if (response.ok) {
-      const result = await response.json()
-      console.log('Scraping finalizado con éxito:', result)
-      await fetchJobs()
-    } else {
-      console.error('Error al ejecutar el scraping en el servidor')
+      await refreshData()
     }
   } catch (error) {
     console.error('Error de red al intentar hacer scraping:', error)
@@ -134,17 +203,10 @@ const triggerAnalyze = async () => {
   try {
     const response = await fetch(`${API_URL}/jobs/analyze-offers`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     })
-
     if (response.ok) {
-      const result = await response.json()
-      console.log('Análisis finalizado con éxito:', result)
-      await fetchJobs()
-    } else {
-      console.error('Error al ejecutar el análisis en el servidor')
+      await refreshData()
     }
   } catch (error) {
     console.error('Error de red al intentar analizar las ofertas:', error)
@@ -153,23 +215,15 @@ const triggerAnalyze = async () => {
   }
 }
 
-// Función para llamar al endpoint de archivar ofertas expiradas
 const triggerArchiveExpired = async () => {
   archiving.value = true
   try {
     const response = await fetch(`${API_URL}/jobs/archive-expired`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      }
+      headers: { 'Content-Type': 'application/json' }
     })
-
     if (response.ok) {
-      const result = await response.json()
-      console.log('Ofertas expiradas archivadas con éxito:', result)
-      await fetchJobs() // Recarga la lista para reflejar los cambios de estado
-    } else {
-      console.error('Error al archivar las ofertas expiradas en el servidor')
+      await refreshData()
     }
   } catch (error) {
     console.error('Error de red al intentar archivar las ofertas:', error)
@@ -188,8 +242,10 @@ const viewDetail = (id) => {
   router.push({ name: 'JobDetail', params: { id } })
 }
 
-onMounted(() => {
-  fetchJobs()
+onMounted(async () => {
+  await fetchStatuses()
+  await fetchCounts()
+  await fetchJobs()
 })
 </script>
 
@@ -200,24 +256,6 @@ onMounted(() => {
 
   &:hover {
     text-decoration: underline;
-  }
-}
-
-/* Estilo para el selector de estado en la cabecera */
-.status-filter {
-  padding: 8px 12px;
-  background: #fff;
-  border: 1px solid $border-color;
-  border-radius: 6px;
-  color: $text-main;
-  font-size: 0.9rem;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
-
-  &:focus {
-    border-color: $primary-color;
-    box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
   }
 }
 </style>
