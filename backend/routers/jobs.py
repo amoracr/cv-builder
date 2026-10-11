@@ -1,6 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 from zoneinfo import ZoneInfo
 
 from database import get_session
@@ -21,7 +21,10 @@ from scrapers.jobicy import JobicyScraper
 from scrapers.remote_ok import RemoteOKScraper
 from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
-from services.job_processor import analyze_discovered_jobs
+from services.job_processor import (
+    analyze_discovered_jobs,
+    generate_ats_cvs_for_approved,
+)
 from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -41,11 +44,43 @@ def count_jobs_head(response: Response, session: Session = Depends(get_session))
     return
 
 
-@router.get("/", response_model=List[JobOfferPublic])
-def get_jobs(session: Session = Depends(get_session)):
-    statement = select(JobOffer).order_by(JobOffer.updated_at.desc())
-    jobs = session.exec(statement).all()
-    return jobs
+@router.get("/")
+def list_jobs(
+    status: Optional[JobStatus] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    session: Session = Depends(get_session),
+):
+    # 1. Construir la consulta principal para las ofertas con paginación y filtro de estado
+    query = select(JobOffer)
+    if status:
+        query = query.where(JobOffer.status == status.value)
+
+    # 2. Contar el total de elementos bajo el filtro actual (para calcular las páginas exactas)
+    total_query = select(func.count(JobOffer.id))
+    if status:
+        total_query = total_query.where(JobOffer.status == status.value)
+    total_jobs = session.exec(total_query).one()
+
+    # 3. Aplicar orden descendente por fecha y paginación (20 por página)
+    offset = (page - 1) * page_size
+    query = query.offset(offset).limit(page_size).order_by(JobOffer.created_at.desc())
+
+    jobs = session.exec(query).all()
+
+    # Mapear los modelos de base de datos al esquema público de Pydantic
+    jobs_public = [JobOfferPublic.model_validate(job) for job in jobs]
+
+    # Calcular el total de páginas de forma segura
+    total_pages = max(1, (total_jobs + page_size - 1) // page_size)
+
+    return {
+        "page": page,
+        "page_size": page_size,
+        "total_jobs": total_jobs,
+        "total_pages": total_pages,
+        "jobs": jobs_public,
+    }
 
 
 @router.post("/", response_model=JobOffer)
@@ -86,6 +121,33 @@ def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
     session.commit()
     session.refresh(db_job)
     return db_job
+
+
+@router.get("/counts")
+def get_job_status_counts(session: Session = Depends(get_session)):
+    status_counts_query = select(JobOffer.status, func.count(JobOffer.id)).group_by(
+        JobOffer.status
+    )
+    status_counts_result = session.exec(status_counts_query).all()
+
+    # Forzar que la clave sea el string en minúsculas del estado
+    counts_dict = {
+        str(st.value if hasattr(st, "value") else st).lower(): count
+        for st, count in status_counts_result
+        if st
+    }
+
+    return counts_dict
+
+
+@router.get("/statuses")
+def get_job_statuses():
+    # Retorna la lista de valores y nombres legibles basados en tu Enum JobStatus
+    statuses = [
+        {"value": status.value, "label": status.name.replace("_", " ").title()}
+        for status in JobStatus
+    ]
+    return statuses
 
 
 @router.get("/{job_id}", response_model=JobOfferDetailPublic)
