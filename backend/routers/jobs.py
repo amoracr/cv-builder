@@ -4,7 +4,15 @@ from typing import List, Optional
 from zoneinfo import ZoneInfo
 
 from database import get_session
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Response
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    HTTPException,
+    Query,
+    Response,
+    status,
+)
 from models import (
     Company,
     EmailRegisterRequest,
@@ -13,6 +21,7 @@ from models import (
     JobOfferCreate,
     JobOfferDetailPublic,
     JobOfferPublic,
+    JobOfferStatusUpdate,
     JobSource,
     JobStatus,
 )
@@ -158,6 +167,33 @@ def get_job_detail(job_id: int, session: Session = Depends(get_session)):
     return job
 
 
+@router.patch("/{job_id}", response_model=JobOfferPublic)
+def update_job_status(
+    job_id: int,
+    status_update: JobOfferStatusUpdate,
+    session: Session = Depends(get_session),
+):
+    # 1. Buscar la oferta por ID
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Oferta con id {job_id} no encontrada",
+        )
+
+    # 2. Actualizar el estado y la fecha de actualización
+    job.status = status_update.status.value
+    job.updated_at = datetime.now(COSTA_RICA_TZ)
+
+    # 3. Guardar en la base de datos
+    session.add(job)
+    session.commit()
+    session.refresh(job)
+
+    # 4. Retornar el objeto actualizado mapeado a JobOfferPublic
+    return JobOfferPublic.model_validate(job)
+
+
 @router.post("/{job_id}/register-email")
 def register_job_email(
     job_id: int, payload: EmailRegisterRequest, session: Session = Depends(get_session)
@@ -176,18 +212,18 @@ def register_job_email(
     )
     session.add(new_email)
 
-    # 2. Actualizar el estado de la oferta con el parámetro recibido del frontend
-    job.status = payload.status
+    # 2. Actualizar la fecha de modificación de la oferta
     job.updated_at = datetime.now(COSTA_RICA_TZ)
-
     session.add(job)
+
+    # 3. Guardar cambios
     session.commit()
-    session.refresh(job)
+    session.refresh(new_email)
 
     return {
-        "message": "Correo registrado y estado actualizado exitosamente",
+        "message": "Correo registrado exitosamente",
         "job_id": job.id,
-        "new_status": job.status,
+        "email_id": new_email.id,
     }
 
 

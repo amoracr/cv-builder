@@ -40,6 +40,7 @@ class TailoredCV(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_offer_id: int = Field(foreign_key="joboffer.id", unique=True)
     markdown_content: Optional[str] = Field(default=None, sa_column=Column(Text))
+    cover_letter: Optional[str] = Field(default=None, sa_column=Column(Text))
     summary_of_changes: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
 
@@ -109,6 +110,9 @@ class JobOfferCreate(SQLModel):
     company_name: Optional[str] = "Manual"
     source_name: Optional[str] = "Direct Message"
 
+class JobOfferStatusUpdate(BaseModel):
+    status: JobStatus
+
 class CompanyPublic(SQLModel):
     id: Optional[int] = None
     name: str
@@ -140,7 +144,11 @@ class JobOfferDetailPublic(JobOfferPublic):
     emails: List[JobEmailPublic] = []
 
 class EmailRegisterRequest(BaseModel):
-    status: JobStatus  # Recibe el nuevo estado (ej: "discarded", "interviewing", etc.)
     subject: str
     sender: str
     content: str
+
+class TailoredDocumentResponse(BaseModel):
+    markdown_content: str  # El contenido del CV optimizado en Markdown
+    cover_letter: str      # La carta de presentación profesional para el puesto
+    summary_of_changes: str
