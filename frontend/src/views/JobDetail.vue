@@ -9,7 +9,6 @@
           <h1>{{ job.title }}</h1>
           <h2>{{ job.company?.name || 'Empresa confidencial' }}</h2>
 
-          <!-- Nueva línea con las fechas de registro y actualización -->
           <div class="job-metadata-dates">
             <span>Creada: {{ formatDate(job.created_at) }}</span>
             <span v-if="job.updated_at"> • Actualizada: {{ formatDate(job.updated_at) }}</span>
@@ -18,24 +17,30 @@
 
         <div class="header-actions">
           <a :href="job.url" target="_blank" class="btn-external">Ver oferta original ↗</a>
-          <button v-if="!isJobClosed" @click="toggleEmailForm" class="btn-register-email">
-            <svg v-if="!showEmailForm" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+          <!-- Botones para alternar entre formularios -->
+          <button v-if="!isJobClosed" @click="toggleForm('status')" class="btn-toggle-status">
+            {{ showStatusForm ? 'Cerrar form estado' : '✏️ Cambiar Estado' }}
+          </button>
+
+          <button v-if="!isJobClosed" @click="toggleForm('email')" class="btn-register-email">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
               <polyline points="22,6 12,13 2,6"></polyline>
             </svg>
-            <span>{{ showEmailForm ? 'Cerrar formulario' : 'Registrar Correo / Estado' }}</span>
+            <span>{{ showEmailForm ? 'Cerrar form correo' : '✉️ Registrar Correo' }}</span>
           </button>
         </div>
       </header>
 
-      <!-- Formulario para agregar correo y cambiar estado (también se oculta por seguridad si se cierra) -->
-      <div v-if="showEmailForm && !isJobClosed" class="email-form-section">
-        <h3>Registrar Respuesta de Correo</h3>
-        <form @submit.prevent="submitEmailForm" class="email-form">
+      <!-- FORMULARIO 1: Solo para cambiar el estado -->
+      <div v-if="showStatusForm && !isJobClosed" class="form-section">
+        <h3>Actualizar Estado de la Oferta</h3>
+        <form @submit.prevent="submitStatusForm" class="action-form">
           <div class="form-group">
-            <label>Nuevo Estado de la Oferta:</label>
-            <select v-model="emailForm.status" class="form-control" required>
+            <label>Nuevo Estado:</label>
+            <select v-model="statusForm.status" class="form-control" required>
               <option value="discovered">Discovered</option>
               <option value="manual_review">Manual Review</option>
               <option value="to_apply">To Apply</option>
@@ -43,12 +48,22 @@
               <option value="waiting">Waiting</option>
               <option value="interviewing">Interviewing</option>
               <option value="offered">Offered</option>
-              <option value="discarded">Discarded (Rechazado)</option>
+              <option value="discarded">Discarded</option>
               <option value="rejected">Rejected</option>
               <option value="ghosted">Ghosted</option>
               <option value="hired">Hired</option>
             </select>
           </div>
+          <button type="submit" class="btn-submit" :disabled="submittingStatus">
+            {{ submittingStatus ? 'Guardando...' : 'Guardar Nuevo Estado' }}
+          </button>
+        </form>
+      </div>
+
+      <!-- FORMULARIO 2: Para registrar correo y actualizar estado simultáneamente -->
+      <div v-if="showEmailForm && !isJobClosed" class="form-section">
+        <h3>Registrar Respuesta de Correo</h3>
+        <form @submit.prevent="submitEmailForm" class="action-form">
 
           <div class="form-group">
             <label>Asunto del Correo:</label>
@@ -68,13 +83,13 @@
               placeholder="Pega el texto del correo aquí..." required></textarea>
           </div>
 
-          <button type="submit" class="btn-submit" :disabled="submitting">
-            {{ submitting ? 'Guardando...' : 'Guardar Correo y Actualizar Estado' }}
+          <button type="submit" class="btn-submit" :disabled="submittingEmail">
+            {{ submittingEmail ? 'Guardando...' : 'Guardar Correo y Actualizar' }}
           </button>
         </form>
       </div>
 
-      <!-- El resto de tus secciones (IA, Descripción, Historial de Correos, etc.) se mantienen igual -->
+      <!-- Secciones de Contenido -->
       <div class="section">
         <h3>Análisis de IA (Match: {{ job.match_percentage }}%)</h3>
         <p class="reasoning">{{ job.ai_reasoning || 'Sin análisis previo.' }}</p>
@@ -118,11 +133,18 @@ const jobId = Number(route.params.id)
 
 const job = ref(null)
 const loading = ref(false)
-const submitting = ref(false)
+const submittingStatus = ref(false)
+const submittingEmail = ref(false)
+
+// Control de visibilidad independiente para cada formulario
+const showStatusForm = ref(false)
 const showEmailForm = ref(false)
 
+const statusForm = ref({
+  status: ''
+})
+
 const emailForm = ref({
-  status: 'discarded',
   subject: '',
   sender: '',
   content: ''
@@ -130,16 +152,10 @@ const emailForm = ref({
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
-// Propiedad computada para detectar si el estado está cerrado
 const isJobClosed = computed(() => {
   if (!job.value || !job.value.status) return false
-
-  // Convertimos a minúsculas y limpiamos espacios por seguridad
   const currentStatus = String(job.value.status).trim().toLowerCase()
-
-  const closedStatuses = ['rejected', 'ghosted', 'discarded', 'hired']
-
-  return closedStatuses.includes(currentStatus)
+  return ['rejected', 'ghosted', 'discarded', 'hired'].includes(currentStatus)
 })
 
 const fetchJobDetail = async () => {
@@ -148,10 +164,10 @@ const fetchJobDetail = async () => {
     const response = await fetch(`${API_URL}/jobs/${jobId}`)
     if (response.ok) {
       job.value = await response.json()
-      emailForm.value.status = job.value.status
+      statusForm.value.status = job.value.status
 
-      // Si la oferta se carga y está cerrada, asegurarnos de cerrar el formulario
       if (isJobClosed.value) {
+        showStatusForm.value = false
         showEmailForm.value = false
       }
     }
@@ -162,31 +178,60 @@ const fetchJobDetail = async () => {
   }
 }
 
-const toggleEmailForm = () => {
-  showEmailForm.value = !showEmailForm.value
+// Alternar formularios de forma exclusiva
+const toggleForm = (formType) => {
+  if (formType === 'status') {
+    showStatusForm.value = !showStatusForm.value
+    if (showStatusForm.value) showEmailForm.value = false
+  } else {
+    showEmailForm.value = !showEmailForm.value
+    if (showEmailForm.value) showStatusForm.value = false
+  }
 }
 
+// Enviar formulario exclusivo de cambio de estado
+const submitStatusForm = async () => {
+  submittingStatus.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/status`, {
+      method: 'PATCH', // O PUT según configures tu backend
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: statusForm.value.status })
+    })
+
+    if (response.ok) {
+      showStatusForm.value = false
+      await fetchJobDetail()
+    } else {
+      console.error('Error al actualizar el estado')
+    }
+  } catch (error) {
+    console.error('Error de red:', error)
+  } finally {
+    submittingStatus.value = false
+  }
+}
+
+// Enviar formulario de registro de correo
 const submitEmailForm = async () => {
-  submitting.value = true
+  submittingEmail.value = true
   try {
     const response = await fetch(`${API_URL}/jobs/${jobId}/register-email`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(emailForm.value)
     })
 
     if (response.ok) {
       showEmailForm.value = false
-      await fetchJobDetail() // Recarga los datos y evaluará automáticamente si el botón debe ocultarse con el nuevo estado
+      await fetchJobDetail()
     } else {
       console.error('Error al registrar el correo')
     }
   } catch (error) {
     console.error('Error de red:', error)
   } finally {
-    submitting.value = false
+    submittingEmail.value = false
   }
 }
 

@@ -60,12 +60,19 @@
           margin: 0;
           font-weight: 500;
         }
+
+        .job-metadata-dates {
+          font-size: 0.85rem;
+          color: $text-muted;
+          margin-top: 4px;
+        }
       }
 
       .header-actions {
         display: flex;
-        gap: 12px;
+        gap: 10px;
         align-items: center;
+        flex-wrap: wrap;
 
         .btn-external {
           padding: 10px 14px;
@@ -80,6 +87,24 @@
 
           &:hover {
             background: #edf2f7;
+          }
+        }
+
+        /* Botón para cambiar estado */
+        .btn-toggle-status {
+          padding: 10px 14px;
+          background: #fff;
+          border: 1px solid $border-color;
+          border-radius: 8px;
+          color: $text-main;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+
+          &:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
           }
         }
 
@@ -208,7 +233,8 @@
   }
 }
 
-.email-form-section {
+/* Estilos compartidos para las secciones de formularios (Cambio de Estado y Registro de Correo) */
+.form-section, .email-form-section {
   background: #f8fafc;
   border: 1px solid $border-color;
   border-radius: 8px;
@@ -222,7 +248,7 @@
     color: $text-main;
   }
 
-  .email-form {
+  .action-form, .email-form {
     display: flex;
     flex-direction: column;
     gap: 14px;
