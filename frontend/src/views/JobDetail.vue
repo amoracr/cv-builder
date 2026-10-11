@@ -193,7 +193,7 @@ const toggleForm = (formType) => {
 const submitStatusForm = async () => {
   submittingStatus.value = true
   try {
-    const response = await fetch(`${API_URL}/jobs/${jobId}/status`, {
+    const response = await fetch(`${API_URL}/jobs/${jobId}`, {
       method: 'PATCH', // O PUT según configures tu backend
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: statusForm.value.status })
