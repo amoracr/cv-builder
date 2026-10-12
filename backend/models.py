@@ -41,8 +41,8 @@ class TailoredCV(SQLModel, table=True):
     job_offer_id: int = Field(foreign_key="joboffer.id", unique=True)
     markdown_content: Optional[str] = Field(default=None, sa_column=Column(Text))
     cover_letter: Optional[str] = Field(default=None, sa_column=Column(Text))
-    summary_of_changes: Optional[str] = Field(default=None, sa_column=Column(Text))
     created_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
 
     job_offer: Optional["JobOffer"] = Relationship(back_populates="tailored_cv")
 
@@ -110,8 +110,10 @@ class JobOfferCreate(SQLModel):
     company_name: Optional[str] = "Manual"
     source_name: Optional[str] = "Direct Message"
 
+
 class JobOfferStatusUpdate(BaseModel):
     status: JobStatus
+
 
 class CompanyPublic(SQLModel):
     id: Optional[int] = None
@@ -127,9 +129,10 @@ class JobOfferPublic(SQLModel):
     ai_reasoning: Optional[str] = None
     created_at: datetime
     updated_at: datetime
-    
+
     # Esto permite que el frontend lea directamente job.company.name
     company: Optional[CompanyPublic] = None
+
 
 class JobEmailPublic(SQLModel):
     id: Optional[int] = None
@@ -138,17 +141,19 @@ class JobEmailPublic(SQLModel):
     content: Optional[str] = None
     received_at: datetime
 
+
 # Schema extendido para el detalle completo de la oferta
 class JobOfferDetailPublic(JobOfferPublic):
     description: Optional[str] = None
     emails: List[JobEmailPublic] = []
+
 
 class EmailRegisterRequest(BaseModel):
     subject: str
     sender: str
     content: str
 
+
 class TailoredDocumentResponse(BaseModel):
     markdown_content: str  # El contenido del CV optimizado en Markdown
-    cover_letter: str      # La carta de presentación profesional para el puesto
-    summary_of_changes: str
+    cover_letter: str  # La carta de presentación profesional para el puesto
