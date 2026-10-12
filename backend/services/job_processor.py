@@ -1,7 +1,8 @@
 import os
 import time
 
-from models import JobOffer, TailoredCV, JobStatus
+from fastapi import HTTPException
+from models import JobOffer, JobStatus, TailoredCV
 from services.ai_matcher import evaluate_job_offer, generate_ats_cv
 from sqlmodel import Session, select
 
@@ -56,7 +57,7 @@ def analyze_discovered_jobs(session: Session) -> dict:
                 if match_pct >= 80:
                     new_status = JobStatus.TO_APPLY
                     approved_count += 1
-                elif 60 <= match_pct < 80:
+                elif 65 <= match_pct < 80:
                     new_status = JobStatus.MANUAL_REVIEW
                     manual_review_count += 1
                 else:
@@ -89,59 +90,50 @@ def analyze_discovered_jobs(session: Session) -> dict:
     }
 
 
-def generate_ats_cvs_for_approved(session: Session) -> dict:
+def generate_ats_cv_for_job(job_id: int, session: Session) -> dict:
     """
-    Tarea 2: Busca ofertas en estado 'to_apply' ordenadas por ID ascendente
-    y genera/actualiza su CV adaptado si aún no lo tienen creado.
+    Genera y guarda únicamente el CV adaptado para una única oferta de empleo.
     """
-    pause_time = float(os.getenv("PAUSE_BETWEEN_REQUEST", "1.0"))
+    # 1. Buscar la oferta por ID
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(
+            status_code=404, detail=f"Oferta con ID {job_id} no encontrada."
+        )
 
-    # Consultar ofertas aprobadas ordenadas por ID ascendente
-    statement = (
-        select(JobOffer)
-        .where(JobOffer.status == JobStatus.TO_APPLY)
-        .order_by(JobOffer.id.asc())
-    )
-    approved_jobs = session.exec(statement).all()
+    # 2. Verificar si ya existe un documento previo para evitar duplicados
+    existing_cv = session.exec(
+        select(TailoredCV).where(TailoredCV.job_offer_id == job.id)
+    ).first()
 
-    if not approved_jobs:
+    if existing_cv:
         return {
             "status": "success",
-            "generated_count": 0,
-            "message": "No hay ofertas aprobadas pendientes de CV.",
+            "message": "Esta oferta ya cuenta con su CV generado.",
+            "cv_id": existing_cv.id,
         }
 
-    generated_count = 0
+    try:
+        # 3. Generar el contenido mediante IA
+        cv_result = generate_ats_cv(job.description)
 
-    for job in approved_jobs:
-        try:
-            # Verificar si ya existe un CV previo para evitar duplicados
-            existing_cv = session.exec(
-                select(TailoredCV).where(TailoredCV.job_offer_id == job.id)
-            ).first()
+        # 4. Guardar exclusivamente el CV en la tabla TailoredCV
+        new_cv = TailoredCV(
+            job_offer_id=job.id, markdown_content=cv_result.markdown_content
+        )
+        session.add(new_cv)
+        session.commit()
+        session.refresh(new_cv)
 
-            if existing_cv:
-                continue  # Ya lo tiene, pasamos al siguiente
+        return {
+            "status": "success",
+            "message": "CV generado y guardado exitosamente.",
+            "cv_id": new_cv.id,
+        }
 
-            # Generar el CV adaptado
-            cv_result = generate_ats_cv(job.description)
-
-            new_cv = TailoredCV(
-                job_offer_id=job.id,
-                markdown_content=cv_result.markdown_content,
-                summary_of_changes=cv_result.summary_of_changes,
-            )
-            session.add(new_cv)
-            session.commit()
-            generated_count += 1
-
-            time.sleep(pause_time)
-
-        except Exception as e:
-            session.rollback()
-            print(
-                f"Error generando CV para la oferta ID {job.id} ('{job.title}'): {str(e)}"
-            )
-            time.sleep(pause_time * 2)
-
-    return {"status": "success", "generated_count": generated_count}
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error generando el CV para la oferta ID {job.id}: {str(e)}",
+        )
