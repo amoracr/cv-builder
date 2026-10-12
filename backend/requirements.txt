@@ -1,7 +1,9 @@
 fastapi
 feedparser
 httpx
+markdown2
 pydantic
+pydantic-settings
 python-dotenv
 requests
 sqlmodel

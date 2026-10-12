@@ -6,7 +6,8 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 # Declaramos el argumento que vendrá desde docker-compose (por defecto ollama si no se especifica)
-ARG LLM_ENGINE=ollama
+ARG EVALUATE_ENGINE=ollama
+ARG WRITE_CV_ENGINE=gemini
 
 # Directorio de trabajo dentro del contenedor
 WORKDIR /app
@@ -34,12 +35,20 @@ COPY requirements-*.txt ./
 RUN pip install --no-cache-dir --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Instalamos de forma condicional el requirements del motor seleccionado (ej: requirements-gemini.txt)
-RUN if [ -f "requirements-${LLM_ENGINE}.txt" ]; then \
-        echo "Instalando dependencias para el motor: ${LLM_ENGINE}" && \
-        pip install --no-cache-dir -r requirements-${LLM_ENGINE}.txt; \
+# Instalamos de forma condicional el requirements del motor seleccionado 
+RUN if [ -f "requirements-${EVALUATE_ENGINE}.txt" ]; then \
+        echo "Instalando dependencias para el motor: ${EVALUATE_ENGINE}" && \
+        pip install --no-cache-dir -r requirements-${EVALUATE_ENGINE}.txt; \
     else \
-        echo "No se encontró un archivo de requerimientos específico para '${LLM_ENGINE}', omitiendo..."; \
+        echo "No se encontró un archivo de requerimientos específico para '${EVALUATE_ENGINE}', omitiendo..."; \
+    fi
+
+# Instalamos de forma condicional el requirements del motor seleccionado 
+RUN if [ -f "requirements-${WRITE_CV_ENGINE}.txt" ]; then \
+        echo "Instalando dependencias para el motor: ${WRITE_CV_ENGINE}" && \
+        pip install --no-cache-dir -r requirements-${WRITE_CV_ENGINE}.txt; \
+    else \
+        echo "No se encontró un archivo de requerimientos específico para '${WRITE_CV_ENGINE}', omitiendo..."; \
     fi
 
 # Copiamos el resto del código del backend
