@@ -4,7 +4,8 @@ services:
       context: ./backend
       dockerfile: Dockerfile.dev
       args:
-        - LLM_ENGINE=${LLM_ENGINE}
+        - EVALUATE_ENGINE=${EVALUATE_ENGINE}
+        - WRITE_CV_ENGINE=${WRITE_CV_ENGINE}
     container_name: job_automation_bot
     volumes:
       - ./backend:/app
