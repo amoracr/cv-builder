@@ -1,5 +1,4 @@
 import os
-import ollama
 
 from .base import BaseLLMProvider
 from .schemas import AtsOptimizedCv, JobMatchAnalysis
@@ -8,6 +7,7 @@ from .schemas import AtsOptimizedCv, JobMatchAnalysis
 class OllamaProvider(BaseLLMProvider):
     def __init__(self, cv_file_path: str = "/app/data/cv.md"):
         super().__init__(cv_file_path=cv_file_path)
+        import ollama
 
         self.host = os.getenv("OLLAMA_BASE_URL", "http://ollama:11434")
         if not self.host:

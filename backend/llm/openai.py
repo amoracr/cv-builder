@@ -1,7 +1,5 @@
 import os
 
-from openai import OpenAI
-
 from .base import BaseLLMProvider
 from .schemas import AtsOptimizedCv, JobMatchAnalysis
 
@@ -9,6 +7,7 @@ from .schemas import AtsOptimizedCv, JobMatchAnalysis
 class OpenAIProvider(BaseLLMProvider):
     def __init__(self, cv_file_path: str = "/app/data/cv.md"):
         super().__init__(cv_file_path=cv_file_path)
+        from openai import OpenAI
 
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
