@@ -1,30 +1,36 @@
 import os
 
+from google import genai
+from google.genai import types
+
 from .base import BaseLLMProvider
 from .schemas import AtsOptimizedCv, JobMatchAnalysis
 
 
 class GeminiProvider(BaseLLMProvider):
-    def __init__(self):
-        super().__init__()
-        from google import genai
-        from google.genai import types
+    def __init__(self, cv_file_path: str = "/app/data/cv.md"):
+        super().__init__(cv_file_path=cv_file_path)
 
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("GEMINI_API_KEY es obligatoria cuando LLM_ENGINE=gemini")
+            raise ValueError("GEMINI_API_KEY es obligatoria para usar Gemini")
 
         self.client = genai.Client(api_key=api_key)
         self.types = types
-        self.model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+
+        self.evaluate_model = os.getenv(
+            "EVALUATE_MODEL", os.getenv("GEMINI_LIGHT_MODEL", "gemini-2.5-flash")
+        )
+
+        self.write_model = os.getenv(
+            "WRITE_CV_MODEL", os.getenv("GEMINI_PRO_MODEL", self.evaluate_model)
+        )
 
     def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
-        cv_text = self.load_local_cv()
-        prompt = self.evaluate_job_prompt.format(
-            cv_text=cv_text, job_description=job_description
-        )
+        prompt = self.get_evaluation_prompt(job_description)
+
         response = self.client.models.generate_content(
-            model=self.model,
+            model=self.evaluate_model,
             contents=prompt,
             config=self.types.GenerateContentConfig(
                 response_mime_type="application/json",
@@ -36,12 +42,10 @@ class GeminiProvider(BaseLLMProvider):
         return JobMatchAnalysis.model_validate_json(response.text)
 
     def generate_cv(self, job_description: str) -> AtsOptimizedCv:
-        cv_text = self.load_local_cv()
-        prompt = self.write_cv_prompt.format(
-            cv_text=cv_text, job_description=job_description
-        )
+        prompt = self.get_write_cv_prompt(job_description)
+
         response = self.client.models.generate_content(
-            model=self.model,
+            model=self.write_model,
             contents=prompt,
             config=self.types.GenerateContentConfig(
                 response_mime_type="application/json",

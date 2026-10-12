@@ -1,29 +1,35 @@
 import os
 
+from openai import OpenAI
+
 from .base import BaseLLMProvider
 from .schemas import AtsOptimizedCv, JobMatchAnalysis
 
 
 class OpenAIProvider(BaseLLMProvider):
-    def __init__(self):
-        super().__init__()
-        from openai import OpenAI
+    def __init__(self, cv_file_path: str = "/app/data/cv.md"):
+        super().__init__(cv_file_path=cv_file_path)
 
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key:
-            raise ValueError("OPENAI_API_KEY es obligatoria cuando LLM_ENGINE=openai")
+            raise ValueError("OPENAI_API_KEY es obligatoria para usar OpenAI")
 
         self.client = OpenAI(api_key=api_key)
-        self.model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
-    def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
-        cv_text = self.load_local_cv()
-        prompt = self.evaluate_job_prompt.format(
-            cv_text=cv_text, job_description=job_description
+        self.evaluate_model = os.getenv(
+            "EVALUATE_MODEL", os.getenv("OPENAI_LIGHT_MODEL", "gpt-4o-mini")
         )
 
+        self.write_model = os.getenv(
+            "WRITE_CV_MODEL",
+            os.getenv("OPENAI_PRO_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o")),
+        )
+
+    def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
+        prompt = self.get_evaluation_prompt(job_description)
+
         completion = self.client.beta.chat.completions.parse(
-            model=self.model,
+            model=self.evaluate_model,
             messages=[
                 {
                     "role": "system",
@@ -38,13 +44,10 @@ class OpenAIProvider(BaseLLMProvider):
         return completion.choices[0].message.parsed
 
     def generate_cv(self, job_description: str) -> AtsOptimizedCv:
-        cv_text = self.load_local_cv()
-        prompt = self.write_cv_prompt.format(
-            cv_text=cv_text, job_description=job_description
-        )
+        prompt = self.get_write_cv_prompt(job_description)
 
         completion = self.client.beta.chat.completions.parse(
-            model=self.model,
+            model=self.write_model,
             messages=[
                 {
                     "role": "system",
