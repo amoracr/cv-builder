@@ -36,10 +36,34 @@ done
 
 echo "¡Ollama está activo en el contenedor!"
 
+# Función robusta para hacer pull con reintentos automáticos ante cortes por EOF o red
+pull_model_with_retry() {
+  model_name=$1
+  max_attempts=10
+  attempt=1
+
+  while [ $attempt -le $max_attempts ]; do
+    echo "-> Intentando descargar el modelo '$model_name' (Intento $attempt/$max_attempts)..."
+    
+    # Ejecutamos el pull dentro del contenedor
+    if docker exec "$CONTAINER_NAME" ollama pull "$model_name"; then
+      echo "¡Modelo '$model_name' descargado con éxito!"
+      return 0
+    else
+      echo "⚠️ La descarga de '$model_name' se interrumpió (posible EOF/red lenta). Reintentando en 5 segundos..."
+      sleep 5
+      attempt=$((attempt + 1))
+    fi
+  done
+
+  echo "❌ Error crítico: No se pudo descargar el modelo '$model_name' tras $max_attempts intentos."
+  exit 1
+}
+
 # Descargar modelo de evaluación si usa Ollama
 if [ "$EVAL_ENGINE" = "ollama" ]; then
-  echo "-> [Evaluate] Descargando modelo local: $EVAL_MODEL"
-  docker exec "$CONTAINER_NAME" ollama pull "$EVAL_MODEL"
+  echo "-> [Evaluate] Procesando modelo local: $EVAL_MODEL"
+  pull_model_with_retry "$EVAL_MODEL"
 fi
 
 # Descargar modelo de escritura si usa Ollama (evitando duplicar si usa el mismo modelo)
@@ -47,8 +71,8 @@ if [ "$WRITE_ENGINE" = "ollama" ]; then
   if [ "$WRITE_MODEL" = "$EVAL_MODEL" ] && [ "$EVAL_ENGINE" = "ollama" ]; then
     echo "-> [Write] El modelo de escritura es idéntico al de evaluación ($WRITE_MODEL), no es necesario descargarlo de nuevo."
   else
-    echo "-> [Write] Descargando modelo local: $WRITE_MODEL"
-    docker exec "$CONTAINER_NAME" ollama pull "$WRITE_MODEL"
+    echo "-> [Write] Procesando modelo local: $WRITE_MODEL"
+    pull_model_with_retry "$WRITE_MODEL"
   fi
 fi
 
