@@ -21,7 +21,7 @@ class OpenAIProvider(BaseLLMProvider):
 
         self.write_model = os.getenv(
             "WRITE_CV_MODEL",
-            os.getenv("OPENAI_PRO_MODEL", os.getenv("OPENAI_MODEL", "gpt-4o")),
+            os.getenv("OPENAI_PRO_MODEL", "gpt-4o"),
         )
 
     def evaluate_job(self, job_description: str) -> JobMatchAnalysis:

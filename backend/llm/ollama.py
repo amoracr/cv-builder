@@ -14,11 +14,11 @@ class OllamaProvider(BaseLLMProvider):
             raise ValueError("OLLAMA_BASE_URL es obligatoria cuando se usa Ollama")
 
         self.evaluate_model = os.getenv(
-            "EVALUATE_MODEL", os.getenv("OLLAMA_LIGHT_MODEL", "qwen2.5-coder:7b")
+            "EVALUATE_MODEL", os.getenv("OLLAMA_LIGHT_MODEL", "qwen2.5:3b")
         )
 
         self.write_model = os.getenv(
-            "WRITE_CV_MODEL", os.getenv("OLLAMA_PRO_MODEL", self.evaluate_model)
+            "WRITE_CV_MODEL", os.getenv("OLLAMA_PRO_MODEL", "qwen2.5:7b")
         )
 
         self.client = ollama.Client(host=self.host)

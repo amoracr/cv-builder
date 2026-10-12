@@ -22,7 +22,7 @@ class GeminiProvider(BaseLLMProvider):
         )
 
         self.write_model = os.getenv(
-            "WRITE_CV_MODEL", os.getenv("GEMINI_PRO_MODEL", self.evaluate_model)
+            "WRITE_CV_MODEL", os.getenv("GEMINI_PRO_MODEL", "gemini-3.5-flash")
         )
 
     def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
