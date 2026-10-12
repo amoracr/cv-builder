@@ -3,6 +3,9 @@ from datetime import datetime
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
+from config import (
+    ENABLED_SCRAPERS,
+)
 from database import get_session
 from fastapi import (
     APIRouter,
@@ -40,12 +43,19 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
+AVAILABLE_SCRAPERS = {
+    "wwr": (WWRScraper, "We Work Remotely"),
+    "remoteok": (RemoteOKScraper, "Remote OK"),
+    "remotive": (RemotiveScraper, "Remotive"),
+    "jobicy": (JobicyScraper, "Jobicy"),
+    "get_on_board": (GetOnBoardScraper, "Get On Board"),
+}
+
 
 def run_single_scraper(scraper_cls, name: str):
     """Ejecuta un scraper individual de forma aislada"""
     print(f"🎯 [Orquestador API] Iniciando proceso de {name}...")
     try:
-        # Instanciamos el scraper sin pasarle la sesión (como está diseñado originalmente)
         scraper = scraper_cls()
         scraper.run()
         print(f"✨ [Orquestador API] Proceso de {name} finalizado con éxito.")
@@ -54,15 +64,26 @@ def run_single_scraper(scraper_cls, name: str):
 
 
 def run_scrapers_background():
-    """Ejecuta cada scraper de forma concurrente pero totalmente aislada"""
-    # Pasamos las clases, no instancias compartidas
-    scrapers_to_run = [
-        (WWRScraper, "We Work Remotely"),
-        (RemoteOKScraper, "Remote OK"),
-        (RemotiveScraper, "Remotive"),
-        (JobicyScraper, "Jobicy"),
-        (GetOnBoardScraper, "Get On Board"),
-    ]
+    """Ejecuta únicamente los scrapers habilitados en la variable ENABLED_SCRAPERS del .env"""
+    scrapers_to_run = []
+
+    for key in ENABLED_SCRAPERS:
+        if key in AVAILABLE_SCRAPERS:
+            scrapers_to_run.append(AVAILABLE_SCRAPERS[key])
+        else:
+            print(
+                f"⚠️ [Orquestador API] La clave '{key}' en ENABLED_SCRAPERS no coincide con ningún scraper registrado."
+            )
+
+    if not scrapers_to_run:
+        print(
+            "⚠️ [Orquestador API] No hay ningún scraper habilitado en el archivo .env."
+        )
+        return
+
+    print(
+        f"🚀 [Orquestador API] Ejecutando en paralelo {len(scrapers_to_run)} fuentes habilitadas..."
+    )
 
     with ThreadPoolExecutor(max_workers=len(scrapers_to_run)) as executor:
         for scraper_cls, name in scrapers_to_run:
@@ -88,27 +109,20 @@ def list_jobs(
     page_size: int = Query(20, ge=1, le=100),
     session: Session = Depends(get_session),
 ):
-    # 1. Construir la consulta principal para las ofertas con paginación y filtro de estado
     query = select(JobOffer)
     if status:
         query = query.where(JobOffer.status == status.value)
 
-    # 2. Contar el total de elementos bajo el filtro actual (para calcular las páginas exactas)
     total_query = select(func.count(JobOffer.id))
     if status:
         total_query = total_query.where(JobOffer.status == status.value)
     total_jobs = session.exec(total_query).one()
 
-    # 3. Aplicar orden descendente por fecha y paginación (20 por página)
     offset = (page - 1) * page_size
     query = query.offset(offset).limit(page_size).order_by(JobOffer.created_at.desc())
 
     jobs = session.exec(query).all()
-
-    # Mapear los modelos de base de datos al esquema público de Pydantic
     jobs_public = [JobOfferPublic.model_validate(job) for job in jobs]
-
-    # Calcular el total de páginas de forma segura
     total_pages = max(1, (total_jobs + page_size - 1) // page_size)
 
     return {
@@ -123,8 +137,6 @@ def list_jobs(
 @router.post("/", response_model=JobOffer)
 def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
     """Crea una oferta buscando o creando automáticamente la empresa y la fuente por su nombre."""
-
-    # 1. Gestionar la Empresa (Company)
     company_name = job_in.company_name or "Manual"
     company = session.exec(select(Company).where(Company.name == company_name)).first()
     if not company:
@@ -133,7 +145,6 @@ def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
         session.commit()
         session.refresh(company)
 
-    # 2. Gestionar la Fuente (JobSource)
     source_name = job_in.source_name or "Direct Message"
     source = session.exec(
         select(JobSource).where(JobSource.name == source_name)
@@ -144,7 +155,6 @@ def create_job(job_in: JobOfferCreate, session: Session = Depends(get_session)):
         session.commit()
         session.refresh(source)
 
-    # 3. Crear la Oferta de Empleo usando los IDs obtenidos/creados
     db_job = JobOffer(
         title=job_in.title,
         url=job_in.url,
@@ -167,7 +177,6 @@ def get_job_status_counts(session: Session = Depends(get_session)):
     )
     status_counts_result = session.exec(status_counts_query).all()
 
-    # Forzar que la clave sea el string en minúsculas del estado
     counts_dict = {
         str(st.value if hasattr(st, "value") else st).lower(): count
         for st, count in status_counts_result
@@ -179,7 +188,6 @@ def get_job_status_counts(session: Session = Depends(get_session)):
 
 @router.get("/statuses")
 def get_job_statuses():
-    # Retorna la lista de valores y nombres legibles basados en tu Enum JobStatus
     statuses = [
         {"value": status.value, "label": status.name.replace("_", " ").title()}
         for status in JobStatus
@@ -230,19 +238,19 @@ def archive_expired_jobs(session: Session = Depends(get_session)):
 @router.post("/scrap-offers", status_code=202)
 def trigger_scrapers(background_tasks: BackgroundTasks):
     """
-    Endpoint para disparar la ingesta de todos los scrapers en paralelo en segundo plano.
+    Endpoint para disparar la ingesta de los scrapers habilitados en el .env en segundo plano.
     """
     background_tasks.add_task(run_scrapers_background)
 
     return {
-        "message": "La sincronización con los portales de empleo ha sido iniciada en segundo plano en paralelo.",
+        "message": "La sincronización con los portales de empleo habilitados ha sido iniciada en segundo plano.",
         "status": "processing",
     }
 
 
 @router.post("/analyze-offers")
 def trigger_processing_queue(session: Session = Depends(get_session)):
-    """Ejecuta el procesamiento por lotes de todas las ofertas 'Discovered' respetando el PAUSE_BETWEEN_REQUEST."""
+    """Ejecuta el procesamiento por lotes de todas las ofertas 'Discovered'."""
     result = analyze_discovered_jobs(session)
     return result
 
@@ -261,7 +269,6 @@ def update_job_status(
     status_update: JobOfferStatusUpdate,
     session: Session = Depends(get_session),
 ):
-    # 1. Buscar la oferta por ID
     job = session.get(JobOffer, job_id)
     if not job:
         raise HTTPException(
@@ -269,16 +276,13 @@ def update_job_status(
             detail=f"Oferta con id {job_id} no encontrada",
         )
 
-    # 2. Actualizar el estado y la fecha de actualización
     job.status = status_update.status.value
     job.updated_at = datetime.now(COSTA_RICA_TZ)
 
-    # 3. Guardar en la base de datos
     session.add(job)
     session.commit()
     session.refresh(job)
 
-    # 4. Retornar el objeto actualizado mapeado a JobOfferPublic
     return JobOfferPublic.model_validate(job)
 
 
@@ -290,7 +294,6 @@ def register_job_email(
     if not job:
         raise HTTPException(status_code=404, detail="Oferta no encontrada")
 
-    # 1. Guardar el correo en la tabla relacional JobEmail
     new_email = JobEmail(
         job_offer_id=job.id,
         subject=payload.subject,
@@ -300,11 +303,9 @@ def register_job_email(
     )
     session.add(new_email)
 
-    # 2. Actualizar la fecha de modificación de la oferta
     job.updated_at = datetime.now(COSTA_RICA_TZ)
     session.add(job)
 
-    # 3. Guardar cambios
     session.commit()
     session.refresh(new_email)
 

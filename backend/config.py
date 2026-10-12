@@ -3,7 +3,6 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# Sube un nivel desde 'backend/config.py' hacia la raíz del proyecto para buscar el .env
 env_path = Path(__file__).resolve().parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
@@ -18,3 +17,11 @@ JOBICY_URL = os.getenv("JOBICY_URL", "")
 JOBICY_LOCATIONS = os.getenv("JOBICY_LOCATIONS", "").split(",")
 JOBICY_INDUSTRIES = os.getenv("JOBICY_INDUSTRIES", "").split(",")
 GET_ON_BOARD_URL = os.getenv("GET_ON_BOARD_URL", "")
+
+ENABLED_SCRAPERS = [
+    source.strip().lower()
+    for source in os.getenv(
+        "ENABLED_SCRAPERS", "wwr,remotive,jobicy,get_on_board"
+    ).split(",")
+    if source.strip()
+]
