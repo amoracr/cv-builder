@@ -32,7 +32,7 @@ from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
 from services.job_processor import (
     analyze_discovered_jobs,
-    generate_ats_cvs_for_approved,
+    generate_ats_cv_for_job,
 )
 from sqlmodel import Session, func, select
 
@@ -313,3 +313,12 @@ def register_job_email(
         "job_id": job.id,
         "email_id": new_email.id,
     }
+
+
+@router.post("/{job_id}/generate-cv")
+def generate_job_cv(job_id: int, session: Session = Depends(get_session)):
+    print("👉 1. Entró a la ruta del endpoint de FastAPI")
+    print("👉 2. A punto de llamar al cliente LLM...")
+    result = generate_ats_cv_for_job(job_id, session)
+    print("👉 3. CV generado con éxito")
+    return result
