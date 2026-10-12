@@ -5,6 +5,14 @@ from .schemas import AtsOptimizedCv, JobMatchAnalysis
 
 
 class GeminiProvider(BaseLLMProvider):
+    import google.genai.errors
+    from tenacity import (
+        retry,
+        retry_if_exception_type,
+        stop_after_attempt,
+        wait_exponential,
+    )
+
     def __init__(self, cv_file_path: str = "/app/data/cv.md"):
         super().__init__(cv_file_path=cv_file_path)
         from google import genai
@@ -25,6 +33,12 @@ class GeminiProvider(BaseLLMProvider):
             "WRITE_CV_MODEL", os.getenv("GEMINI_PRO_MODEL", "gemini-3.5-flash")
         )
 
+    @retry(
+        stop=stop_after_attempt(4),  # Intentar hasta 4 veces
+        wait=wait_exponential(multiplier=1, min=2, max=10),  # Esperar 2s, 4s, 8s...
+        retry=retry_if_exception_type(google.genai.errors.ServerError),
+        reraise=True,
+    )
     def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
         prompt = self.get_evaluation_prompt(job_description)
 
@@ -40,6 +54,12 @@ class GeminiProvider(BaseLLMProvider):
         )
         return JobMatchAnalysis.model_validate_json(response.text)
 
+    @retry(
+        stop=stop_after_attempt(4),  # Intentar hasta 4 veces
+        wait=wait_exponential(multiplier=1, min=2, max=10),  # Esperar 2s, 4s, 8s...
+        retry=retry_if_exception_type(google.genai.errors.ServerError),
+        reraise=True,
+    )
     def generate_cv(self, job_description: str) -> AtsOptimizedCv:
         prompt = self.get_write_cv_prompt(job_description)
 

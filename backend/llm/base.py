@@ -22,13 +22,14 @@ class BaseLLMProvider(ABC):
 
             SCORING RULES:
             1. BASE & TRANSFERABLE SKILLS: Start from 0%. Add points for direct matches or valid transferable ecosystem skills.
-            2. LOCATION & REMOTE CONSTRAINT: If the job description explicitly requires on-site presence where the candidate cannot work, match_percentage MUST BE CAPPED AT MAXIMUM 64%.
+            2. LOCATION & REMOTE CONSTRAINT: If the job description explicitly requires on-site presence where the candidate cannot work, match_percentage MUST BE CAPPED AT MAXIMUM 60%.
             3. MANDATORY PENALTIES: Substantially penalize missing critical mandatory requirements.
             4. SCORING DISTRIBUTION: 80-100 (Exceptional), 65-79 (Moderate), 0-64 (Poor).
             5. 'matching_techs': List ONLY core overlapping technologies (max 6).
             6. 'missing_techs': List missing critical requirements (max 5).
             7. 'reasoning': Write a single direct sentence in Spanish explaining the score. STRICTLY under 80 words.
             8. DO NOT INCLUDE ANY PERSONAL INFORMATION IN THE REASONING.
+            9. DO A FRESH START FOR EVERY EVALUATION.
 
             ### CANDIDATE CV
             {cv_text}
