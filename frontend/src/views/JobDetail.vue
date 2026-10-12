@@ -18,17 +18,22 @@
         <div class="header-actions">
           <a :href="job.url" target="_blank" class="btn-external">Ver oferta original ↗</a>
 
+          <!-- Botón para generar CV ATS (Solo visible/habilitado en estado to_apply) -->
+          <button 
+            v-if="job.status === 'to_apply'" 
+            @click="generateCv" 
+            class="btn-generate-cv"
+            :disabled="generatingCv"
+          >
+            {{ generatingCv ? 'Generando CV...' : '📄 Generar CV ATS' }}
+          </button>
+
           <!-- Botones para alternar entre formularios -->
           <button v-if="!isJobClosed" @click="toggleForm('status')" class="btn-toggle-status">
             {{ showStatusForm ? 'Cerrar form estado' : '✏️ Cambiar Estado' }}
           </button>
 
           <button v-if="!isJobClosed" @click="toggleForm('email')" class="btn-register-email">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
-              stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
             <span>{{ showEmailForm ? 'Cerrar form correo' : '✉️ Registrar Correo' }}</span>
           </button>
         </div>
@@ -135,6 +140,7 @@ const job = ref(null)
 const loading = ref(false)
 const submittingStatus = ref(false)
 const submittingEmail = ref(false)
+const generatingCv = ref(false)
 
 // Control de visibilidad independiente para cada formulario
 const showStatusForm = ref(false)
@@ -194,7 +200,7 @@ const submitStatusForm = async () => {
   submittingStatus.value = true
   try {
     const response = await fetch(`${API_URL}/jobs/${jobId}`, {
-      method: 'PATCH', // O PUT según configures tu backend
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: statusForm.value.status })
     })
@@ -232,6 +238,27 @@ const submitEmailForm = async () => {
     console.error('Error de red:', error)
   } finally {
     submittingEmail.value = false
+  }
+}
+
+// Disparar la generación del CV adaptado (ATS)
+const generateCv = async () => {
+  generatingCv.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/generate-cv`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    if (response.ok) {
+      await fetchJobDetail()
+    } else {
+      console.error('Error al generar el CV')
+    }
+  } catch (error) {
+    console.error('Error de red:', error)
+  } finally {
+    generatingCv.value = false
   }
 }
 

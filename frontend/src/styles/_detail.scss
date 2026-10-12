@@ -36,16 +36,56 @@
           display: inline-block;
           margin-bottom: 4px;
 
-          &.to_apply { background: #e6ffed; color: #22863a; }
-          &.discarded, &.rejected { background: #ffeef0; color: #cb2431; }
-          &.manual_review { background: #fffbdd; color: #b08800; }
-          &.applied { background: #f0f6fc; color: #0969da; }
-          &.waiting { background: #fff3cd; color: #856404; }
-          &.interviewing { background: #d1ecf1; color: #0c5460; }
-          &.offered { background: #d4edda; color: #155724; }
-          &.ghosted { background: #e2e3e5; color: #383d41; }
-          &.hired { background: #dafbe1; color: #116329; }
-          &.discovered { background: #f1f3f5; color: #495057; }
+          &.to_apply {
+            background: #e6ffed;
+            color: #22863a;
+          }
+
+          &.discarded,
+          &.rejected {
+            background: #ffeef0;
+            color: #cb2431;
+          }
+
+          &.manual_review {
+            background: #fffbdd;
+            color: #b08800;
+          }
+
+          &.applied {
+            background: #f0f6fc;
+            color: #0969da;
+          }
+
+          &.waiting {
+            background: #fff3cd;
+            color: #856404;
+          }
+
+          &.interviewing {
+            background: #d1ecf1;
+            color: #0c5460;
+          }
+
+          &.offered {
+            background: #d4edda;
+            color: #155724;
+          }
+
+          &.ghosted {
+            background: #e2e3e5;
+            color: #383d41;
+          }
+
+          &.hired {
+            background: #dafbe1;
+            color: #116329;
+          }
+
+          &.discovered {
+            background: #f1f3f5;
+            color: #495057;
+          }
         }
 
         h1 {
@@ -90,6 +130,41 @@
           }
         }
 
+        /* Botón de Generar CV ATS (Estilo Generación IA / Indigo-Purple) */
+        .btn-generate-cv {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 14px;
+          background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+          color: #ffffff;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 0.9rem;
+          cursor: pointer;
+          box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+          transition: all 0.2s ease-in-out;
+
+          &:hover:not(:disabled) {
+            background: linear-gradient(135deg, #818cf8 0%, #4338ca 100%);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+            transform: translateY(-1px);
+          }
+
+          &:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(99, 102, 241, 0.2);
+          }
+
+          &:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+        }
+
         /* Botón para cambiar estado */
         .btn-toggle-status {
           padding: 10px 14px;
@@ -108,7 +183,7 @@
           }
         }
 
-        /* Botón moderno y destacado para registrar correo */
+        /* Botón para registrar correo */
         .btn-register-email {
           display: inline-flex;
           align-items: center;
@@ -234,7 +309,8 @@
 }
 
 /* Estilos compartidos para las secciones de formularios (Cambio de Estado y Registro de Correo) */
-.form-section, .email-form-section {
+.form-section,
+.email-form-section {
   background: #f8fafc;
   border: 1px solid $border-color;
   border-radius: 8px;
@@ -248,7 +324,8 @@
     color: $text-main;
   }
 
-  .action-form, .email-form {
+  .action-form,
+  .email-form {
     display: flex;
     flex-direction: column;
     gap: 14px;
