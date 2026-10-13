@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>CV Optimizado</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 1.2cm 1.5cm;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            color: #2d3748;
+            line-height: 1.35;
+            font-size: 9.5pt;
+        }
+
+        h1 {
+            font-size: 16pt;
+            color: #1a365d;
+            border-bottom: 2px solid #cbd5e0;
+            padding-bottom: 2px;
+            margin-top: 0;
+            margin-bottom: 6px;
+        }
+
+        h2 {
+            font-size: 11pt;
+            color: #2b6cb0;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 1px;
+            margin-top: 10px;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        h3 {
+            font-size: 10pt;
+            color: #2d3748;
+            margin-top: 6px;
+            margin-bottom: 2px;
+        }
+
+
+        p {
+            margin: 3px 0;
+        }
+
+        ul {
+            margin: 2px 0 6px 15px;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 2px;
+        }
+
+        strong {
+            color: #1a202c;
+        }
+
+        .job-block {
+            page-break-inside: avoid;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Se inyecta el HTML procesado desde el Markdown -->
+    {{ markdown_html | safe }}
+</body>
+
+</html>
