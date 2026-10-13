@@ -21,3 +21,13 @@ def generate_pdf_from_markdown(markdown_content: str, output_path: str) -> str:
     
     HTML(string=final_html).write_pdf(output_path)
     return output_path
+
+def generate_cover_letter_pdf(content: str, output_path: str) -> str:
+    html_body = markdown.markdown(content, extensions=['nl2br'])
+
+    # Usar plantilla específica para cartas
+    template = env.get_template('cover_letter.html')
+    final_html = template.render(markdown_html=html_body)
+
+    HTML(string=final_html).write_pdf(output_path)
+    return output_path

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        @page {
+            size: A4;
+            margin: 2.5cm 2cm;
+        }
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            font-size: 11pt;
+            color: #2d3748;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+        }
+        .cover-letter-content {
+            /* Estilos para renderizar el texto plano o markdown del cover letter */
+        }
+        .cover-letter-content p {
+            margin-bottom: 1.2em;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+    <div class="cover-letter-content">
+        <!-- El contenido procesado por markdown (con nl2br) se inyecta aquí -->
+        {{ markdown_html | safe }}
+    </div>
+</body>
+</html>

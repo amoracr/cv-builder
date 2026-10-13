@@ -40,7 +40,7 @@ from services.job_processor import (
     generate_ats_cl_for_job,
     generate_ats_cv_for_job,
 )
-from services.pdf_generator import generate_pdf_from_markdown
+from services.pdf_generator import generate_cover_letter_pdf, generate_pdf_from_markdown
 from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -362,12 +362,42 @@ def generate_job_cl(job_id: int, session: Session = Depends(get_session)):
     return result
 
 
+@router.get("/{job_id}/download-cl-pdf")
+def download_tailored_cl_pdf(job_id: int, session: Session = Depends(get_session)):
+    # 1. Buscar la oferta de empleo
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Oferta de empleo no encontrada.")
+
+    # 2. Validar que exista la relación tailored_cv y contenga el markdown
+    if not job.tailored_cv or not job.tailored_cv.cover_letter:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró un Cover Letter en Markdown para esta oferta.",
+        )
+
+    # 3. Preparar ruta temporal y compilar PDF
+    os.makedirs("./data/temp", exist_ok=True)
+    pdf_path = f"./data/temp/CL_{job_id}.pdf"
+
+    # Generamos el PDF utilizando el texto Markdown de la relación
+    generate_cover_letter_pdf(job.tailored_cv.cover_letter, pdf_path)
+
+    # 4. Retornar la respuesta como archivo descargable
+    safe_title = job.title.replace(" ", "_").replace("/", "_")
+    return FileResponse(
+        path=pdf_path,
+        filename=f"{CV_PREFIX}-{safe_title}.pdf",
+        media_type="application/pdf",
+    )
+
+
 @router.patch("/{job_id}/tailored-cv")
 def update_tailored_cv(
     job_id: int, payload: TailoredCVUpdate, session: Session = Depends(get_session)
 ):
     """
-    Actualiza parcialmente el CV adaptado y/o la carta de presentación 
+    Actualiza parcialmente el CV adaptado y/o la carta de presentación
     asociados a una oferta de empleo específica.
     """
     # 1. Verificar que la oferta exista
