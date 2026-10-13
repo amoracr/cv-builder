@@ -110,25 +110,61 @@
         <div class="description-box" v-html="job.description || 'Sin descripción detallada.'"></div>
       </div>
 
-      <!-- CONTENIDO PESTAÑA: CV -->
+      <!-- CONTENIDO PESTAÑA: CV (Lectura y Edición) -->
       <div v-if="activeTab === 'cv' && job.tailored_cv?.markdown_content" class="section tab-content cv-tab-wrapper">
         <div class="cv-actions-bar">
-          <button @click="downloadCvPdf" class="btn-download-pdf">
-            📥 Descargar CV en PDF
-          </button>
+          <div class="left-actions">
+            <button @click="downloadCvPdf" class="btn-download-pdf">
+              📥 Descargar CV en PDF
+            </button>
+          </div>
+          <div class="right-actions">
+            <template v-if="!isEditingCv">
+              <button @click="startEditCv" class="btn-edit-mode">✏️ Editar CV</button>
+            </template>
+            <template v-else>
+              <button @click="cancelEditCv" class="btn-cancel-edit">Cancelar</button>
+              <button @click="saveCv" class="btn-save-edit" :disabled="savingCv">
+                {{ savingCv ? 'Guardando...' : '💾 Guardar Cambios' }}
+              </button>
+            </template>
+          </div>
         </div>
-        <div class="markdown-body cv-preview-box" v-html="renderedCvMarkdown"></div>
+
+        <!-- Textarea para editar o Vista previa Markdown -->
+        <div v-if="isEditingCv" class="edit-wrapper">
+          <textarea v-model="editableCvContent" rows="20" class="form-control markdown-textarea"></textarea>
+        </div>
+        <div v-else class="markdown-body cv-preview-box" v-html="renderedCvMarkdown"></div>
       </div>
 
-      <!-- CONTENIDO PESTAÑA: Carta de Presentación -->
+      <!-- CONTENIDO PESTAÑA: Carta de Presentación (Lectura y Edición) -->
       <div v-if="activeTab === 'coverLetter' && job.tailored_cv?.cover_letter"
         class="section tab-content cv-tab-wrapper">
         <div class="cv-actions-bar">
-          <button @click="downloadCoverLetterPdf" class="btn-download-pdf">
-            📥 Descargar Carta en PDF
-          </button>
+          <div class="left-actions">
+            <button @click="downloadCoverLetterPdf" class="btn-download-pdf">
+              📥 Descargar Carta en PDF
+            </button>
+          </div>
+          <div class="right-actions">
+            <template v-if="!isEditingCl">
+              <button @click="startEditCl" class="btn-edit-mode">✏️ Editar Carta</button>
+            </template>
+            <template v-else>
+              <button @click="cancelEditCl" class="btn-cancel-edit">Cancelar</button>
+              <button @click="saveCoverLetter" class="btn-save-edit" :disabled="savingCl">
+                {{ savingCl ? 'Guardando...' : '💾 Guardar Cambios' }}
+              </button>
+            </template>
+          </div>
         </div>
-        <div class="markdown-body cv-preview-box" v-html="renderedCoverLetterMarkdown"></div>
+
+        <!-- Textarea para editar o Vista previa Markdown -->
+        <div v-if="isEditingCl" class="edit-wrapper">
+          <textarea v-model="editableClContent" rows="20" class="form-control markdown-textarea"></textarea>
+        </div>
+        <div v-else class="markdown-body cv-preview-box" v-html="renderedCoverLetterMarkdown"></div>
       </div>
 
       <!-- Historial de Correos -->
@@ -169,6 +205,14 @@ const submittingStatus = ref(false)
 const submittingEmail = ref(false)
 const generatingCv = ref(false)
 
+// Estados de guardado y edición para CV y Carta
+const savingCv = ref(false)
+const savingCl = ref(false)
+const isEditingCv = ref(false)
+const isEditingCl = ref(false)
+const editableCvContent = ref('')
+const editableClContent = ref('')
+
 const activeTab = ref('description')
 
 const showStatusForm = ref(false)
@@ -207,6 +251,66 @@ const fetchJobDetail = async () => {
     console.error('Error al cargar el detalle de la oferta:', error)
   } finally {
     loading.value = false
+  }
+}
+
+// Métodos de Edición de CV
+const startEditCv = () => {
+  editableCvContent.value = job.value.tailored_cv?.markdown_content || ''
+  isEditingCv.value = true
+}
+
+const cancelEditCv = () => {
+  isEditingCv.value = false
+  editableCvContent.value = ''
+}
+
+const saveCv = async () => {
+  savingCv.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/tailored-cv`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown_content: editableCvContent.value })
+    })
+    if (response.ok) {
+      job.value.tailored_cv.markdown_content = editableCvContent.value
+      isEditingCv.value = false
+    }
+  } catch (error) {
+    console.error('Error al guardar el CV:', error)
+  } finally {
+    savingCv.value = false
+  }
+}
+
+// Métodos de Edición de Carta de Presentación
+const startEditCl = () => {
+  editableClContent.value = job.value.tailored_cv?.cover_letter || ''
+  isEditingCl.value = true
+}
+
+const cancelEditCl = () => {
+  isEditingCl.value = false
+  editableClContent.value = ''
+}
+
+const saveCoverLetter = async () => {
+  savingCl.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/tailored-cv`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cover_letter: editableClContent.value })
+    })
+    if (response.ok) {
+      job.value.tailored_cv.cover_letter = editableClContent.value
+      isEditingCl.value = false
+    }
+  } catch (error) {
+    console.error('Error al guardar la carta de presentación:', error)
+  } finally {
+    savingCl.value = false
   }
 }
 
