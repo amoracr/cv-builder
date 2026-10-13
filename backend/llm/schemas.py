@@ -34,7 +34,7 @@ class AtsOptimizedCv(BaseModel):
     )
 
 
-class CoverLetterRequest(BaseModel):
+class AtsCoverLetter(BaseModel):
     cover_letter: str = Field(
         description=(
             "Carta de presentación profesional, persuasiva y redactada específicamente "

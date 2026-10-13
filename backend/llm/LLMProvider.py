@@ -19,8 +19,10 @@ def get_llm_provider(task: str = "evaluate") -> BaseLLMProvider:
     # Seleccionar la variable de entorno según la fase del pipeline
     if task == "evaluate":
         engine = os.getenv("EVALUATE_ENGINE", os.getenv("LLM_ENGINE", "ollama"))
-    elif task == "write":
+    elif task == "write_cv":
         engine = os.getenv("WRITE_CV_ENGINE", os.getenv("LLM_ENGINE", "gemini"))
+    elif task == "write_letter":
+        engine = os.getenv("WRITE_CL_ENGINE", os.getenv("LLM_ENGINE", "gemini"))
     else:
         # Por si pasa directamente el nombre del engine
         engine = task

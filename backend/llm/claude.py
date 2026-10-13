@@ -1,10 +1,11 @@
 import os
 
 from .base import BaseLLMProvider
-from .schemas import AtsOptimizedCv, JobMatchAnalysis
+from .schemas import AtsCoverLetter, AtsOptimizedCv, JobMatchAnalysis
 
 
 class ClaudeProvider(BaseLLMProvider):
+
     def __init__(self, cv_file_path: str = "/app/data/cv.md"):
         super().__init__(cv_file_path=cv_file_path)
         import anthropic
@@ -20,8 +21,16 @@ class ClaudeProvider(BaseLLMProvider):
             os.getenv("CLAUDE_LIGHT_MODEL", "claude-3-5-haiku-20241022"),
         )
 
-        self.write_model = os.getenv(
+        self.write_cv_model = os.getenv(
             "WRITE_CV_MODEL",
+            os.getenv(
+                "CLAUDE_PRO_MODEL",
+                os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022"),
+            ),
+        )
+
+        self.write_cl_model = os.getenv(
+            "WRITE_CL_MODEL",
             os.getenv(
                 "CLAUDE_PRO_MODEL",
                 os.getenv("CLAUDE_MODEL", "claude-3-5-sonnet-20241022"),
@@ -50,6 +59,19 @@ class ClaudeProvider(BaseLLMProvider):
             temperature=self.write_cv_temperature,
             betas=["structured-outputs-2025-11-13"],
             response_format=AtsOptimizedCv,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.parsed
+
+    def generate_cover_letter(self, job_description: str) -> AtsCoverLetter:
+        prompt = self.get_write_cl_prompt(job_description)
+
+        response = self.client.beta.messages.parse(
+            model=self.write_cl_model,
+            max_tokens=self.write_cl_tokens,
+            temperature=self.write_cl_temperature,
+            betas=["structured-outputs-2025-11-13"],
+            response_format=AtsCoverLetter,
             messages=[{"role": "user", "content": prompt}],
         )
         return response.parsed

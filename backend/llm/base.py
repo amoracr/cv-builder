@@ -3,7 +3,7 @@ import re
 import textwrap
 from abc import ABC, abstractmethod
 
-from .schemas import AtsOptimizedCv, JobMatchAnalysis
+from .schemas import AtsOptimizedCv, JobMatchAnalysis, AtsCoverLetter
 
 
 class BaseLLMProvider(ABC):
@@ -61,6 +61,41 @@ class BaseLLMProvider(ABC):
             </job_description>
             """)
 
+        self.write_cl_temperature = float(os.getenv("WRITE_CL_TEMPERATURE", "0.05"))
+        self.write_cl_tokens = int(os.getenv("WRITE_CL_TOKENS", "8000"))
+
+        self.write_cl_prompt_template = textwrap.dedent("""\
+            <task>
+            Write a highly tailored, persuasive, and ATS-optimized COVER LETTER for the candidate matching the TARGET JOB DESCRIPTION based EXCLUSIVELY on their BASE CV.
+            </task>
+
+            <constraints>
+            - TRUTH & ACCURACY: DO NOT invent, exaggerate, or assume experience, skills, degrees, or metrics not present in the CANDIDATE CV.
+            - LANGUAGE MATCH: Detect and write in the EXACT same language as the JOB DESCRIPTION (English or Spanish).
+            - LENGTH & STRUCTURE: Keep the total document strictly to 3 concise, high-impact paragraphs (under 200 words total).
+            - NO HOLLOW FORMALITIES: Avoid generic openings (e.g., "I am writing to apply for...", "Dear Sir/Madam"). Start directly with a compelling technical value proposition hook.
+            - REQUIREMENT & GOAL MATCHING: Select 2 to 4 key technical requirements AND 2 to 4 stated company goals/objectives from the job description that directly match the candidate's actual CV experience.
+            - FORMAT: Output MUST be valid JSON adhering strictly to the requested schema. The `cover_letter` field must contain the complete, beautifully formatted Markdown document ready for rendering.
+            </constraints>
+
+            <instructions>
+            1. Analyze <job_description> to extract 2 to 4 core technical requirements AND 2 to 4 key organizational/technical goals.
+            2. Cross-reference with <candidate_cv> to map those exact requirements and goals to real candidate engineering achievements, projects, and stack.
+            3. Construct Paragraph 1 (Hook & Alignment): State the specific position, express direct alignment with 1-2 core goals of the job description, and present a strong technical value proposition.
+            4. Construct Paragraph 2 (Requirement & Goal Bridge): Explicitly bridge 2 to 4 technical requirements and company objectives directly to concrete achievements, technologies, and projects from the candidate's CV.
+            5. Construct Paragraph 3 (Call to Action & Impact): Reiterate how the candidate will help achieve the remaining goals, state confidence in delivering immediate value, and invite a brief technical discussion.
+            6. Assemble the final text into the `cover_letter` field as a single, clean Markdown document with appropriate salutation, line breaks, and professional sign-off.
+            </instructions>
+
+            <candidate_cv>
+            {cv_text}
+            </candidate_cv>
+
+            <job_description>
+            {job_description}
+            </job_description>
+            """)
+
     def load_local_cv(self) -> str:
         path = self.cv_file_path if os.path.exists(self.cv_file_path) else "data/cv.md"
         if not os.path.exists(path):
@@ -95,10 +130,20 @@ class BaseLLMProvider(ABC):
             cv_text=cv_text, job_description=job_description
         )
 
+    def get_write_cl_prompt(self, job_description: str) -> str:
+        cv_text = self.load_local_cv()
+        return self.write_cl_prompt_template.format(
+            cv_text=cv_text, job_description=job_description
+        )
+
     @abstractmethod
     def evaluate_job(self, job_description: str) -> JobMatchAnalysis:
         pass
 
     @abstractmethod
     def generate_cv(self, job_description: str) -> AtsOptimizedCv:
+        pass
+
+    @abstractmethod
+    def generate_cover_letter(self, job_description: str) -> AtsCoverLetter:
         pass
