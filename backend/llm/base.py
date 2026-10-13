@@ -70,6 +70,19 @@ class BaseLLMProvider(ABC):
         with open(path, "r", encoding="utf-8") as f:
             return f.read()
 
+    def clean_markdown_to_plain_text(self, markdown_content: str) -> str:
+        if not markdown_content:
+            return ""
+        text = re.sub(r"!\[.*?\]\(.*?\)", "", markdown_content)
+        text = re.sub(r"\[(.*?)\]\(.*?\)", r"\1", text)
+        text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+        text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
+        text = re.sub(r"^\s*[-*_]{3,}\s*$", "", text, flags=re.MULTILINE)
+        text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
+        text = re.sub(r"(\*|_)(.*?)\1", r"\2", text)
+        text = re.sub(r"\n\s*\n+", "\n\n", text)
+        return text.strip()
+
     def get_evaluation_prompt(self, job_description: str) -> str:
         cv_text = self.load_local_cv()
         return self.evaluate_job_prompt_template.format(
@@ -89,16 +102,3 @@ class BaseLLMProvider(ABC):
     @abstractmethod
     def generate_cv(self, job_description: str) -> AtsOptimizedCv:
         pass
-
-    def clean_markdown_to_plain_text(self, markdown_content: str) -> str:
-        if not markdown_content:
-            return ""
-        text = re.sub(r"!\[.*?\]\(.*?\)", "", markdown_content)
-        text = re.sub(r"\[(.*?)\]\(.*?\)", r"\1", text)
-        text = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
-        text = re.sub(r"^#{1,6}\s+", "", text, flags=re.MULTILINE)
-        text = re.sub(r"^\s*[-*_]{3,}\s*$", "", text, flags=re.MULTILINE)
-        text = re.sub(r"(\*\*|__)(.*?)\1", r"\2", text)
-        text = re.sub(r"(\*|_)(.*?)\1", r"\2", text)
-        text = re.sub(r"\n\s*\n+", "\n\n", text)
-        return text.strip()
