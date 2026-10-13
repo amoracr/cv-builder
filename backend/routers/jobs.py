@@ -36,6 +36,7 @@ from scrapers.wwr import WWRScraper
 from services.job_processor import (
     analyze_discovered_jobs,
     generate_ats_cv_for_job,
+    generate_ats_cl_for_job,
 )
 from services.pdf_generator import generate_pdf_from_markdown
 from sqlmodel import Session, func, select
@@ -319,10 +320,7 @@ def register_job_email(
 
 @router.post("/{job_id}/generate-cv")
 def generate_job_cv(job_id: int, session: Session = Depends(get_session)):
-    print("👉 1. Entró a la ruta del endpoint de FastAPI")
-    print("👉 2. A punto de llamar al cliente LLM...")
     result = generate_ats_cv_for_job(job_id, session)
-    print("👉 3. CV generado con éxito")
     return result
 
 
@@ -354,3 +352,9 @@ def download_tailored_cv_pdf(job_id: int, session: Session = Depends(get_session
         filename=f"{CV_PREFIX}-{safe_title}.pdf",
         media_type="application/pdf",
     )
+
+
+@router.post("/{job_id}/generate-cl")
+def generate_job_cl(job_id: int, session: Session = Depends(get_session)):
+    result = generate_ats_cl_for_job(job_id, session)
+    return result
