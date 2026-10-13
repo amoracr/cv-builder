@@ -47,6 +47,11 @@ class TailoredCV(SQLModel, table=True):
     job_offer: Optional["JobOffer"] = Relationship(back_populates="tailored_cv")
 
 
+@event.listens_for(TailoredCV, "before_update")
+def receive_before_update(mapper, connection, target):
+    target.updated_at = datetime.now(COSTA_RICA_TZ)
+
+
 class JobEmail(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     job_offer_id: int = Field(foreign_key="joboffer.id", index=True)
