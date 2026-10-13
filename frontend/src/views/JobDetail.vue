@@ -385,7 +385,7 @@ const downloadCvPdf = () => {
 }
 
 const downloadCoverLetterPdf = () => {
-  window.open(`${API_URL}/jobs/${jobId}/download-cover-letter-pdf`, '_blank')
+  window.open(`${API_URL}/jobs/${jobId}/download-cl-pdf`, '_blank')
 }
 
 const formatDate = (dateString) => {
