@@ -159,3 +159,7 @@ class EmailRegisterRequest(BaseModel):
 class TailoredDocumentResponse(BaseModel):
     markdown_content: str
     cover_letter: str
+
+class TailoredCVUpdate(BaseModel):
+    markdown_content: Optional[str] = None
+    cover_letter: Optional[str] = None

@@ -27,6 +27,8 @@ from models import (
     JobOfferStatusUpdate,
     JobSource,
     JobStatus,
+    TailoredCV,
+    TailoredCVUpdate,
 )
 from scrapers.get_on_board import GetOnBoardScraper
 from scrapers.jobicy import JobicyScraper
@@ -35,8 +37,8 @@ from scrapers.remotive import RemotiveScraper
 from scrapers.wwr import WWRScraper
 from services.job_processor import (
     analyze_discovered_jobs,
-    generate_ats_cv_for_job,
     generate_ats_cl_for_job,
+    generate_ats_cv_for_job,
 )
 from services.pdf_generator import generate_pdf_from_markdown
 from sqlmodel import Session, func, select
@@ -358,3 +360,67 @@ def download_tailored_cv_pdf(job_id: int, session: Session = Depends(get_session
 def generate_job_cl(job_id: int, session: Session = Depends(get_session)):
     result = generate_ats_cl_for_job(job_id, session)
     return result
+
+
+@router.patch("/{job_id}/tailored-cv")
+def update_tailored_cv(
+    job_id: int, payload: TailoredCVUpdate, session: Session = Depends(get_session)
+):
+    """
+    Actualiza parcialmente el CV adaptado y/o la carta de presentación 
+    asociados a una oferta de empleo específica.
+    """
+    # 1. Verificar que la oferta exista
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(
+            status_code=404, detail=f"Oferta con ID {job_id} no encontrada."
+        )
+
+    # 2. Buscar el registro TailoredCV asociado a la oferta
+    tailored_cv = session.exec(
+        select(TailoredCV).where(TailoredCV.job_offer_id == job_id)
+    ).first()
+
+    if not tailored_cv:
+        raise HTTPException(
+            status_code=404,
+            detail=(
+                f"No se encontró un documento generado (CV/Carta) para la oferta"
+                f" ID {job_id}."
+            ),
+        )
+
+    # 3. Actualizar dinámicamente solo los campos proporcionados en el payload
+    update_data = payload.model_dump(exclude_unset=True)
+
+    if not update_data:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No se proporcionaron campos para actualizar (markdown_content"
+                " o cover_letter)."
+            ),
+        )
+
+    for key, value in update_data.items():
+        setattr(tailored_cv, key, value)
+
+    try:
+        session.add(tailored_cv)
+        session.commit()
+        session.refresh(tailored_cv)
+
+        return {
+            "status": "success",
+            "message": "Documento actualizado correctamente.",
+            "cv_id": tailored_cv.id,
+            "updated_fields": list(update_data.keys()),
+        }
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al actualizar el documento en la base de datos: {str(e)}",
+        )
