@@ -25,3 +25,5 @@ ENABLED_SCRAPERS = [
     ).split(",")
     if source.strip()
 ]
+
+CV_PREFIX = os.getenv("CV_PREFIX", "")
