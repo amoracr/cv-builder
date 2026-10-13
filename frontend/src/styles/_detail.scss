@@ -130,7 +130,6 @@
           }
         }
 
-        /* Botón de Generar CV ATS (Estilo Generación IA / Indigo-Purple) */
         .btn-generate-cv {
           display: inline-flex;
           align-items: center;
@@ -165,7 +164,6 @@
           }
         }
 
-        /* Botón para cambiar estado */
         .btn-toggle-status {
           padding: 10px 14px;
           background: #fff;
@@ -183,7 +181,6 @@
           }
         }
 
-        /* Botón para registrar correo */
         .btn-register-email {
           display: inline-flex;
           align-items: center;
@@ -253,6 +250,64 @@
       }
     }
 
+    /* NUEVO: Estilos para el sistema de pestañas y vista previa Markdown */
+    .tabs-navigation {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0 10px 0;
+      border-bottom: 2px solid $border-color;
+      padding-bottom: 5px;
+
+      .tab-btn {
+        background: none;
+        border: none;
+        padding: 8px 16px;
+        font-size: 1rem;
+        font-weight: 600;
+        color: $text-muted;
+        cursor: pointer;
+        border-radius: 6px 6px 0 0;
+        transition: all 0.2s ease;
+
+        &.active {
+          color: #2b6cb0;
+          background-color: #ebf8ff;
+          border-bottom: 3px solid #3182ce;
+        }
+      }
+    }
+
+    .cv-actions-bar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 15px;
+
+      .btn-download-pdf {
+        background-color: #2b6cb0;
+        color: white;
+        border: none;
+        padding: 8px 14px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s;
+
+        &:hover {
+          background-color: #2c5282;
+        }
+      }
+    }
+
+    .cv-preview-box {
+      background: #ffffff;
+      border: 1px solid $border-color;
+      padding: 25px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+
     .emails-section {
       .emails-list {
         display: flex;
@@ -308,7 +363,6 @@
   }
 }
 
-/* Estilos compartidos para las secciones de formularios (Cambio de Estado y Registro de Correo) */
 .form-section,
 .email-form-section {
   background: #f8fafc;

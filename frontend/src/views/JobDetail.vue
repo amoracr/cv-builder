@@ -11,24 +11,18 @@
 
           <div class="job-metadata-dates">
             <span>Creada: {{ formatDate(job.created_at) }}</span>
-            <span v-if="job.updated_at"> • Actualizada: {{ formatDate(job.updated_at) }}</span>
+            <span v-if="job.updated_at">Actualizada: {{ formatDate(job.updated_at) }}</span>
           </div>
         </div>
 
         <div class="header-actions">
           <a :href="job.url" target="_blank" class="btn-external">Ver oferta original ↗</a>
 
-          <!-- Botón para generar CV ATS (Solo visible/habilitado en estado to_apply) -->
-          <button 
-            v-if="job.status === 'to_apply'" 
-            @click="generateCv" 
-            class="btn-generate-cv"
-            :disabled="generatingCv"
-          >
-            {{ generatingCv ? 'Generando CV...' : '📄 Generar CV ATS' }}
+          <button v-if="job.status === 'to_apply' && !job.tailored_cv" @click="generateCv" class="btn-generate-cv"
+            :disabled="generatingCv">
+            {{ generatingCv ? 'Generando documentos...' : '📄 Generar Documentos ATS' }}
           </button>
 
-          <!-- Botones para alternar entre formularios -->
           <button v-if="!isJobClosed" @click="toggleForm('status')" class="btn-toggle-status">
             {{ showStatusForm ? 'Cerrar form estado' : '✏️ Cambiar Estado' }}
           </button>
@@ -39,7 +33,7 @@
         </div>
       </header>
 
-      <!-- FORMULARIO 1: Solo para cambiar el estado -->
+      <!-- FORMULARIO 1: Cambiar estado -->
       <div v-if="showStatusForm && !isJobClosed" class="form-section">
         <h3>Actualizar Estado de la Oferta</h3>
         <form @submit.prevent="submitStatusForm" class="action-form">
@@ -65,49 +59,81 @@
         </form>
       </div>
 
-      <!-- FORMULARIO 2: Para registrar correo y actualizar estado simultáneamente -->
+      <!-- FORMULARIO 2: Registrar correo -->
       <div v-if="showEmailForm && !isJobClosed" class="form-section">
         <h3>Registrar Respuesta de Correo</h3>
         <form @submit.prevent="submitEmailForm" class="action-form">
-
           <div class="form-group">
             <label>Asunto del Correo:</label>
             <input v-model="emailForm.subject" type="text" class="form-control"
               placeholder="Ej. Update on Your Application Process" required />
           </div>
-
           <div class="form-group">
             <label>Remitente:</label>
             <input v-model="emailForm.sender" type="text" class="form-control"
               placeholder="Ej. Recruiter <recruiter@company.com>" required />
           </div>
-
           <div class="form-group">
             <label>Contenido del Correo:</label>
             <textarea v-model="emailForm.content" rows="5" class="form-control"
               placeholder="Pega el texto del correo aquí..." required></textarea>
           </div>
-
           <button type="submit" class="btn-submit" :disabled="submittingEmail">
             {{ submittingEmail ? 'Guardando...' : 'Guardar Correo y Actualizar' }}
           </button>
         </form>
       </div>
 
-      <!-- Secciones de Contenido -->
+      <!-- Análisis de IA -->
       <div class="section">
         <h3>Análisis de IA (Match: {{ job.match_percentage }}%)</h3>
         <p class="reasoning">{{ job.ai_reasoning || 'Sin análisis previo.' }}</p>
       </div>
 
-      <div class="section">
-        <h3>Descripción del Puesto</h3>
+      <!-- PESTAÑAS -->
+      <div class="tabs-navigation">
+        <button :class="['tab-btn', activeTab === 'description' ? 'active' : '']" @click="activeTab = 'description'">
+          📋 Descripción del Puesto
+        </button>
+        <button v-if="job.tailored_cv?.markdown_content" :class="['tab-btn', activeTab === 'cv' ? 'active' : '']"
+          @click="activeTab = 'cv'">
+          📄 CV Adaptado (ATS)
+        </button>
+        <button v-if="job.tailored_cv?.cover_letter" :class="['tab-btn', activeTab === 'coverLetter' ? 'active' : '']"
+          @click="activeTab = 'coverLetter'">
+          ✉️ Carta de Presentación
+        </button>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA: Descripción -->
+      <div v-if="activeTab === 'description'" class="section tab-content">
         <div class="description-box" v-html="job.description || 'Sin descripción detallada.'"></div>
       </div>
 
+      <!-- CONTENIDO PESTAÑA: CV -->
+      <div v-if="activeTab === 'cv' && job.tailored_cv?.markdown_content" class="section tab-content cv-tab-wrapper">
+        <div class="cv-actions-bar">
+          <button @click="downloadCvPdf" class="btn-download-pdf">
+            📥 Descargar CV en PDF
+          </button>
+        </div>
+        <div class="markdown-body cv-preview-box" v-html="renderedCvMarkdown"></div>
+      </div>
+
+      <!-- CONTENIDO PESTAÑA: Carta de Presentación -->
+      <div v-if="activeTab === 'coverLetter' && job.tailored_cv?.cover_letter"
+        class="section tab-content cv-tab-wrapper">
+        <div class="cv-actions-bar">
+          <button @click="downloadCoverLetterPdf" class="btn-download-pdf">
+            📥 Descargar Carta en PDF
+          </button>
+        </div>
+        <div class="markdown-body cv-preview-box" v-html="renderedCoverLetterMarkdown"></div>
+      </div>
+
+      <!-- Historial de Correos -->
       <div class="section emails-section">
         <h3>Historial de Correos Recibidos ({{ job.emails?.length || 0 }})</h3>
-
         <div v-if="job.emails && job.emails.length > 0" class="emails-list">
           <div v-for="email in job.emails" :key="email.id" class="email-item">
             <div class="email-meta">
@@ -131,6 +157,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { marked } from 'marked'
 
 const router = useRouter()
 const route = useRoute()
@@ -142,19 +169,13 @@ const submittingStatus = ref(false)
 const submittingEmail = ref(false)
 const generatingCv = ref(false)
 
-// Control de visibilidad independiente para cada formulario
+const activeTab = ref('description')
+
 const showStatusForm = ref(false)
 const showEmailForm = ref(false)
 
-const statusForm = ref({
-  status: ''
-})
-
-const emailForm = ref({
-  subject: '',
-  sender: '',
-  content: ''
-})
+const statusForm = ref({ status: '' })
+const emailForm = ref({ subject: '', sender: '', content: '' })
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
 
@@ -164,6 +185,16 @@ const isJobClosed = computed(() => {
   return ['rejected', 'ghosted', 'discarded', 'hired'].includes(currentStatus)
 })
 
+const renderedCvMarkdown = computed(() => {
+  if (!job.value?.tailored_cv?.markdown_content) return ''
+  return marked(job.value.tailored_cv.markdown_content)
+})
+
+const renderedCoverLetterMarkdown = computed(() => {
+  if (!job.value?.tailored_cv?.cover_letter) return ''
+  return marked(job.value.tailored_cv.cover_letter)
+})
+
 const fetchJobDetail = async () => {
   loading.value = true
   try {
@@ -171,11 +202,6 @@ const fetchJobDetail = async () => {
     if (response.ok) {
       job.value = await response.json()
       statusForm.value.status = job.value.status
-
-      if (isJobClosed.value) {
-        showStatusForm.value = false
-        showEmailForm.value = false
-      }
     }
   } catch (error) {
     console.error('Error al cargar el detalle de la oferta:', error)
@@ -184,7 +210,6 @@ const fetchJobDetail = async () => {
   }
 }
 
-// Alternar formularios de forma exclusiva
 const toggleForm = (formType) => {
   if (formType === 'status') {
     showStatusForm.value = !showStatusForm.value
@@ -195,7 +220,6 @@ const toggleForm = (formType) => {
   }
 }
 
-// Enviar formulario exclusivo de cambio de estado
 const submitStatusForm = async () => {
   submittingStatus.value = true
   try {
@@ -204,12 +228,9 @@ const submitStatusForm = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: statusForm.value.status })
     })
-
     if (response.ok) {
       showStatusForm.value = false
       await fetchJobDetail()
-    } else {
-      console.error('Error al actualizar el estado')
     }
   } catch (error) {
     console.error('Error de red:', error)
@@ -218,7 +239,6 @@ const submitStatusForm = async () => {
   }
 }
 
-// Enviar formulario de registro de correo
 const submitEmailForm = async () => {
   submittingEmail.value = true
   try {
@@ -227,12 +247,9 @@ const submitEmailForm = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(emailForm.value)
     })
-
     if (response.ok) {
       showEmailForm.value = false
       await fetchJobDetail()
-    } else {
-      console.error('Error al registrar el correo')
     }
   } catch (error) {
     console.error('Error de red:', error)
@@ -241,7 +258,6 @@ const submitEmailForm = async () => {
   }
 }
 
-// Disparar la generación del CV adaptado (ATS)
 const generateCv = async () => {
   generatingCv.value = true
   try {
@@ -249,17 +265,23 @@ const generateCv = async () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     })
-
     if (response.ok) {
       await fetchJobDetail()
-    } else {
-      console.error('Error al generar el CV')
+      activeTab.value = 'cv'
     }
   } catch (error) {
-    console.error('Error de red:', error)
+    console.error('Error al generar los documentos:', error)
   } finally {
     generatingCv.value = false
   }
+}
+
+const downloadCvPdf = () => {
+  window.open(`${API_URL}/jobs/${jobId}/download-cv-pdf`, '_blank')
+}
+
+const downloadCoverLetterPdf = () => {
+  window.open(`${API_URL}/jobs/${jobId}/download-cover-letter-pdf`, '_blank')
 }
 
 const formatDate = (dateString) => {
