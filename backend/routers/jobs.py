@@ -1,11 +1,10 @@
+import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import List, Optional
 from zoneinfo import ZoneInfo
 
-from config import (
-    ENABLED_SCRAPERS,
-)
+from config import CV_PREFIX, ENABLED_SCRAPERS
 from database import get_session
 from fastapi import (
     APIRouter,
@@ -16,6 +15,7 @@ from fastapi import (
     Response,
     status,
 )
+from fastapi.responses import FileResponse
 from models import (
     Company,
     EmailRegisterRequest,
@@ -37,6 +37,7 @@ from services.job_processor import (
     analyze_discovered_jobs,
     generate_ats_cv_for_job,
 )
+from services.pdf_generator import generate_pdf_from_markdown
 from sqlmodel import Session, func, select
 
 router = APIRouter(prefix="/jobs", tags=["Jobs"])
@@ -323,3 +324,33 @@ def generate_job_cv(job_id: int, session: Session = Depends(get_session)):
     result = generate_ats_cv_for_job(job_id, session)
     print("👉 3. CV generado con éxito")
     return result
+
+
+@router.get("/{job_id}/download-cv-pdf")
+def download_tailored_cv_pdf(job_id: int, session: Session = Depends(get_session)):
+    # 1. Buscar la oferta de empleo
+    job = session.get(JobOffer, job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Oferta de empleo no encontrada.")
+
+    # 2. Validar que exista la relación tailored_cv y contenga el markdown
+    if not job.tailored_cv or not job.tailored_cv.markdown_content:
+        raise HTTPException(
+            status_code=404,
+            detail="No se encontró un CV optimizado en Markdown para esta oferta.",
+        )
+
+    # 3. Preparar ruta temporal y compilar PDF
+    os.makedirs("./data/temp", exist_ok=True)
+    pdf_path = f"./data/temp/CV_{job_id}.pdf"
+
+    # Generamos el PDF utilizando el texto Markdown de la relación
+    generate_pdf_from_markdown(job.tailored_cv.markdown_content, pdf_path)
+
+    # 4. Retornar la respuesta como archivo descargable
+    safe_title = job.title.replace(" ", "_").replace("/", "_")
+    return FileResponse(
+        path=pdf_path,
+        filename=f"{CV_PREFIX}-{safe_title}.pdf",
+        media_type="application/pdf",
+    )
