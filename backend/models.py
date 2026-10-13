@@ -56,7 +56,6 @@ class JobEmail(SQLModel, table=True):
     content: Optional[str] = Field(default=None, sa_column=Column(Text))
     received_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
 
-    # Relación inversa
     job_offer: Optional["JobOffer"] = Relationship(back_populates="emails")
 
 
@@ -66,28 +65,24 @@ class JobOffer(SQLModel, table=True):
     url: str = Field(index=True, unique=True)
     description: Optional[str] = Field(default=None, sa_column=Column(Text))
 
-    # Estados y clasificación
     status: JobStatus = Field(default=JobStatus.DISCOVERED)
-    sector: str = Field(default="private")  # "private" o "public"
+    sector: str = Field(default="private")
     role: Optional[str] = Field(default="General", index=True)
 
-    # Resultados del análisis rápido de IA (métricas globales)
     match_percentage: Optional[int] = Field(default=None)
     ai_reasoning: Optional[str] = Field(default=None, sa_column=Column(Text))
 
-    # Claves foráneas
     company_id: Optional[int] = Field(default=None, foreign_key="company.id")
     source_id: Optional[int] = Field(default=None, foreign_key="jobsource.id")
 
-    # Auditoría
     created_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(COSTA_RICA_TZ))
 
-    # Relaciones ORM
     company: Optional[Company] = Relationship(back_populates="jobs")
     source: Optional[JobSource] = Relationship(back_populates="jobs")
     tailored_cv: Optional[TailoredCV] = Relationship(
-        back_populates="job_offer", sa_relationship_kwargs={"uselist": False}
+        back_populates="job_offer",
+        sa_relationship_kwargs={"cascade": "all, delete-orphan", "uselist": False},
     )
     emails: List[JobEmail] = Relationship(
         back_populates="job_offer",
@@ -95,18 +90,16 @@ class JobOffer(SQLModel, table=True):
     )
 
 
-# Evento de SQLAlchemy para actualizar el campo updated_at automáticamente antes de cada actualización
 @event.listens_for(JobOffer, "before_update")
 def receive_before_update(mapper, connection, target):
     target.updated_at = datetime.now(COSTA_RICA_TZ)
 
 
-# Esquema para recibir los datos por API
 class JobOfferCreate(SQLModel):
     title: str
     url: str
     description: Optional[str] = None
-    sector: Optional[str] = "private"  # NUEVO: por defecto privada
+    sector: Optional[str] = "private"
     company_name: Optional[str] = "Manual"
     source_name: Optional[str] = "Direct Message"
 
@@ -130,7 +123,6 @@ class JobOfferPublic(SQLModel):
     created_at: datetime
     updated_at: datetime
 
-    # Esto permite que el frontend lea directamente job.company.name
     company: Optional[CompanyPublic] = None
 
 
@@ -142,10 +134,15 @@ class JobEmailPublic(SQLModel):
     received_at: datetime
 
 
-# Schema extendido para el detalle completo de la oferta
+class TailoredCVPublic(SQLModel):
+    markdown_content: Optional[str] = None
+    cover_letter: Optional[str] = None
+
+
 class JobOfferDetailPublic(JobOfferPublic):
     description: Optional[str] = None
     emails: List[JobEmailPublic] = []
+    tailored_cv: Optional[TailoredCVPublic] = None
 
 
 class EmailRegisterRequest(BaseModel):
@@ -155,5 +152,5 @@ class EmailRegisterRequest(BaseModel):
 
 
 class TailoredDocumentResponse(BaseModel):
-    markdown_content: str  # El contenido del CV optimizado en Markdown
-    cover_letter: str  # La carta de presentación profesional para el puesto
+    markdown_content: str
+    cover_letter: str
