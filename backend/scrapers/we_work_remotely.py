@@ -6,7 +6,7 @@ from config import JOB_TECHS, WWR_RSS_FEEDS
 from .base_scraper import BaseScraper
 
 
-class WWRScraper(BaseScraper):
+class WeWorkRemotelyScraper(BaseScraper):
     def __init__(self):
         super().__init__(
             source_name="We Work Remotely", base_url="https://weworkremotely.com"

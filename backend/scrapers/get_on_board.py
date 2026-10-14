@@ -6,10 +6,10 @@ from .base_scraper import BaseScraper
 
 class GetOnBoardScraper(BaseScraper):
     def __init__(self):
-        super().__init__(source_name="GetOnBoard", base_url="https://www.getonbrd.com")
+        super().__init__(source_name="Get On Board", base_url="https://www.getonbrd.com")
 
     def fetch_jobs(self, rss_url: str):
-        print(f"Obteniendo empleos de GetOnBoard: {rss_url}")
+        print(f"Obteniendo empleos de Get On Board: {rss_url}")
         jobs = []
         page = 1
         separator = "&" if "?" in rss_url else "?"
@@ -20,7 +20,7 @@ class GetOnBoardScraper(BaseScraper):
                 response = httpx.get(current_url, timeout=15.0)
                 if response.status_code != 200:
                     print(
-                        f"Error al consultar GetOnBoard API: HTTP {response.status_code}"
+                        f"Error al consultar Get On Board API: HTTP {response.status_code}"
                     )
                     return []
 
@@ -88,12 +88,12 @@ class GetOnBoardScraper(BaseScraper):
                     current_url = None
 
             except Exception as e:
-                print(f"Excepción conectando con GetOnBoard: {str(e)}")
+                print(f"Excepción conectando con Get On Board: {str(e)}")
 
         return jobs
 
     def run(self):
-        print("📡 [GetOnBoard Scraper] Iniciando sincronización...")
+        print("📡 [Get On Board Scraper] Iniciando sincronización...")
         total_saved = 0
 
         base_api = GET_ON_BOARD_URL
@@ -118,7 +118,7 @@ class GetOnBoardScraper(BaseScraper):
                     total_saved += 1
 
         print(
-            f"✅ [GetOnBoard Scraper] Sincronización completada. Guardadas: {total_saved} ofertas."
+            f"✅ [Get On Board Scraper] Sincronización completada. Guardadas: {total_saved} ofertas."
         )
 
     def get_company_name(self, id: str):
@@ -129,7 +129,7 @@ class GetOnBoardScraper(BaseScraper):
         try:
             response = httpx.get(api_url, timeout=15.0)
             if response.status_code != 200:
-                print(f"Error al consultar GetOnBoard API: HTTP {response.status_code}")
+                print(f"Error al consultar Get On Board API: HTTP {response.status_code}")
 
             data = response.json()
             name = (
@@ -139,6 +139,6 @@ class GetOnBoardScraper(BaseScraper):
             )
 
         except Exception as e:
-            print(f"Excepción conectando con la API de GetOnBoard: {str(e)}")
+            print(f"Excepción conectando con la API de Get On Board: {str(e)}")
 
         return name
