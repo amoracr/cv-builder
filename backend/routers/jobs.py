@@ -34,7 +34,7 @@ from scrapers.get_on_board import GetOnBoardScraper
 from scrapers.jobicy import JobicyScraper
 from scrapers.remote_ok import RemoteOKScraper
 from scrapers.remotive import RemotiveScraper
-from scrapers.wwr import WWRScraper
+from scrapers.we_work_remotely import WeWorkRemotelyScraper
 from services.job_processor import (
     analyze_discovered_jobs,
     generate_ats_cl_for_job,
@@ -48,7 +48,7 @@ router = APIRouter(prefix="/jobs", tags=["Jobs"])
 COSTA_RICA_TZ = ZoneInfo("America/Costa_Rica")
 
 AVAILABLE_SCRAPERS = {
-    "wwr": (WWRScraper, "We Work Remotely"),
+    "we_work_remotely": (WeWorkRemotelyScraper, "We Work Remotely"),
     "remoteok": (RemoteOKScraper, "Remote OK"),
     "remotive": (RemotiveScraper, "Remotive"),
     "jobicy": (JobicyScraper, "Jobicy"),
