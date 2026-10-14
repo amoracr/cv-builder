@@ -17,6 +17,8 @@ JOBICY_URL = os.getenv("JOBICY_URL", "")
 JOBICY_LOCATIONS = os.getenv("JOBICY_LOCATIONS", "").split(",")
 JOBICY_INDUSTRIES = os.getenv("JOBICY_INDUSTRIES", "").split(",")
 GET_ON_BOARD_URL = os.getenv("GET_ON_BOARD_URL", "")
+RFJ_URL = os.getenv("RFJ_URL","")
+RFJ_RSS = os.getenv("RFJ_RSS","").split(",")
 
 ENABLED_SCRAPERS = [
     source.strip().lower()

@@ -32,6 +32,7 @@ from models import (
 )
 from scrapers.get_on_board import GetOnBoardScraper
 from scrapers.jobicy import JobicyScraper
+from scrapers.remote_first_jobs import RemoteFirstJobsScraper
 from scrapers.remote_ok import RemoteOKScraper
 from scrapers.remotive import RemotiveScraper
 from scrapers.we_work_remotely import WeWorkRemotelyScraper
@@ -53,6 +54,7 @@ AVAILABLE_SCRAPERS = {
     "remotive": (RemotiveScraper, "Remotive"),
     "jobicy": (JobicyScraper, "Jobicy"),
     "get_on_board": (GetOnBoardScraper, "Get On Board"),
+    "remote_first_jobs": (RemoteFirstJobsScraper, "Remote First Jobs"),
 }
 
 
