@@ -8,10 +8,12 @@
           <span :class="['badge', job.status]">{{ job.status }}</span>
           <h1>{{ job.title }}</h1>
           <h2>{{ job.company?.name || 'Empresa confidencial' }}</h2>
-
+          <div class="job-metadata-source">
+            <span>Source: {{ job.source.name }}</span>
+          </div>
           <div class="job-metadata-dates">
-            <span>Creada: {{ formatDate(job.created_at) }}</span>
-            <span v-if="job.updated_at">Actualizada: {{ formatDate(job.updated_at) }}</span>
+            <div>Creada: {{ formatDate(job.created_at) }}</div>
+            <div v-if="job.updated_at">Actualizada: {{ formatDate(job.updated_at) }}</div>
           </div>
         </div>
 
