@@ -118,6 +118,11 @@ class CompanyPublic(SQLModel):
     name: str
 
 
+class JobSourcePublic(SQLModel):
+    id: Optional[int] = None
+    name: str
+
+
 class JobOfferPublic(SQLModel):
     id: Optional[int] = None
     title: str
@@ -129,6 +134,7 @@ class JobOfferPublic(SQLModel):
     updated_at: datetime
 
     company: Optional[CompanyPublic] = None
+    source: Optional[JobSourcePublic] = None
 
 
 class JobEmailPublic(SQLModel):
@@ -159,6 +165,7 @@ class EmailRegisterRequest(BaseModel):
 class TailoredDocumentResponse(BaseModel):
     markdown_content: str
     cover_letter: str
+
 
 class TailoredCVUpdate(BaseModel):
     markdown_content: Optional[str] = None
