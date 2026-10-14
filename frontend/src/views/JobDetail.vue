@@ -395,7 +395,7 @@ const formatDate = (dateString) => {
 }
 
 const goBack = () => {
-  router.push({ name: 'JobIndex' })
+  router.back()
 }
 
 onMounted(() => {

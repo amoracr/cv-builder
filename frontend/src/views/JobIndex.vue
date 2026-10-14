@@ -22,21 +22,12 @@
 
     <!-- Contadores superiores y filtro de estados alimentados desde el backend -->
     <div class="status-counters-grid">
-      <div 
-        class="counter-card" 
-        :class="{ active: selectedStatus === '' }" 
-        @click="filterByStatus('')"
-      >
+      <div class="counter-card" :class="{ active: selectedStatus === '' }" @click="filterByStatus('')">
         <span class="counter-title">Todas</span>
         <span class="counter-value">{{ totalJobsCount }}</span>
       </div>
-      <div 
-        v-for="st in availableStatuses" 
-        :key="st.value" 
-        class="counter-card"
-        :class="{ active: selectedStatus === st.value }" 
-        @click="filterByStatus(st.value)"
-      >
+      <div v-for="st in availableStatuses" :key="st.value" class="counter-card"
+        :class="{ active: selectedStatus === st.value }" @click="filterByStatus(st.value)">
         <span class="counter-title">{{ st.label }}</span>
         <span class="counter-value">{{ statusCounts[st.value] || 0 }}</span>
       </div>
@@ -92,9 +83,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 
 const router = useRouter()
+const route = useRoute()
+
 const availableStatuses = ref([])
 const statusCounts = ref({})
 const jobs = ref([])
@@ -111,6 +104,15 @@ const totalPages = ref(1)
 const pageSize = 20
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
+
+// Actualiza los query params en la URL sin recargar
+const updateUrlParams = () => {
+  const query = {}
+  if (selectedStatus.value) query.status = selectedStatus.value
+  if (page.value > 1) query.page = page.value
+
+  router.replace({ name: 'JobIndex', query })
+}
 
 const fetchStatuses = async () => {
   try {
@@ -171,12 +173,14 @@ const refreshData = async () => {
 const filterByStatus = (status) => {
   selectedStatus.value = status
   page.value = 1
+  updateUrlParams()
   fetchJobs()
 }
 
 const changePage = (newPage) => {
   if (newPage >= 1 && newPage <= totalPages.value) {
     page.value = newPage
+    updateUrlParams()
     fetchJobs()
   }
 }
@@ -239,10 +243,26 @@ const formatDate = (dateString) => {
 }
 
 const viewDetail = (id) => {
-  router.push({ name: 'JobDetail', params: { id } })
+  router.push({
+    name: 'JobDetail',
+    params: { id },
+    query: {
+      ...(selectedStatus.value ? { status: selectedStatus.value } : {}),
+      ...(page.value > 1 ? { page: page.value } : {})
+    }
+  })
 }
 
 onMounted(async () => {
+  // 1. Recuperar estado y página desde la URL al cargar o regresar
+  if (route.query.status !== undefined) {
+    selectedStatus.value = String(route.query.status)
+  }
+  if (route.query.page) {
+    page.value = parseInt(route.query.page, 10) || 1
+  }
+
+  // 2. Cargar datos
   await fetchStatuses()
   await fetchCounts()
   await fetchJobs()
