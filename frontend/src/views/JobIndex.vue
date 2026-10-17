@@ -7,6 +7,9 @@
 
       <!-- Grupo derecho: Botones de acción -->
       <div class="header-actions">
+        <router-link to="/jobs/add" class="btn-add">
+          + Añadir Oferta
+        </router-link>
         <button @click="refreshData" class="btn-refresh">Actualizar Lista</button>
         <button @click="triggerScraping" class="btn-scrap" :disabled="scraping">
           {{ scraping ? 'Ejecutando...' : '⚡ Buscar' }}
@@ -269,13 +272,6 @@ onMounted(async () => {
 })
 </script>
 
-<style lang="scss">
-.job-title-link {
-  color: $primary-color;
-  text-decoration: none;
-
-  &:hover {
-    text-decoration: underline;
-  }
-}
+<style scoped lang="scss">
+@use '@/styles/dashboard' as *; // Ajusta la ruta según la ubicación de tu archivo _dashboard.scss
 </style>
