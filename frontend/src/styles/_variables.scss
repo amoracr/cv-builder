@@ -1,7 +1,111 @@
-// Variables globales de diseño
+// ==========================================
+// Colores de Fondo y Contenedores
+// ==========================================
 $bg-color: #f4f6f8;
 $card-bg: #ffffff;
-$border-color: #e1e4e8;
-$primary-color: #0969da;
+$bg-hover-light: #f3f4f6;
+$bg-secondary-btn: #f3f4f6;
+$bg-secondary-btn-hover: #e5e7eb;
+$bg-light-subtle: #f8fafc;
+$bg-preview-box: #fafbfc;
+$bg-external-btn: #f6f8fa;
+$bg-external-btn-hover: #edf2f7;
+$bg-table-zebra: #fbfcfd;
+$bg-email-item: #fbfcfd;
+
+// ==========================================
+// Colores de Tipografía y Textos
+// ==========================================
+$text-heading: #111827;
 $text-main: #24292f;
+$text-label: #374151;
 $text-muted: #57606a;
+$text-inverse: #ffffff;
+
+// ==========================================
+// Colores de Acción / Primarios (Brand)
+// ==========================================
+$primary-color: #2563eb;
+$primary-color-hover: #1d4ed8;
+$primary-gradient-start: #6366f1;
+$primary-gradient-end: #4f46e5;
+$primary-gradient-hover-start: #818cf8;
+$primary-gradient-hover-end: #4338ca;
+
+// Botones de acción del Dashboard (Archive, Analyze, Scrap)
+$btn-archive-bg: #6c757d;
+$btn-archive-disabled: #adb5bd;
+$btn-analyze-bg: #6f42c1;
+$btn-analyze-disabled: #b19cd9;
+$btn-scrap-bg: #2ea44f;
+$btn-scrap-disabled: #94d3a2;
+
+// ==========================================
+// Colores de Bordes y Controles de Formulario
+// ==========================================
+$border-color: #e1e4e8;
+$border-color-focus: #2563eb;
+$border-color-muted: #d1d5db;
+$border-color-alt: #cbd5e1;
+
+// ==========================================
+// Colores de Pestañas (Tabs)
+// ==========================================
+$tab-active-color: #2b6cb0;
+$tab-active-bg: #ebf8ff;
+$tab-active-border: #3182ce;
+
+// ==========================================
+// Colores de Estados (Badges y Acciones)
+// ==========================================
+$badge-default-bg: #eee;
+
+// To Apply
+$badge-to-apply-bg: #e6ffed;
+$badge-to-apply-color: #22863a;
+
+// Discarded / Rejected
+$badge-rejected-bg: #ffeef0;
+$badge-rejected-color: #cb2431;
+
+// Manual Review
+$badge-review-bg: #fffbdd;
+$badge-review-color: #b08800;
+
+// Applied
+$badge-applied-bg: #f0f6fc;
+$badge-applied-color: #0969da;
+
+// Waiting
+$badge-waiting-bg: #fff3cd;
+$badge-waiting-color: #856404;
+
+// Interviewing
+$badge-interview-bg: #d1ecf1;
+$badge-interview-color: #0c5460;
+
+// Offered
+$badge-offered-bg: #d4edda;
+$badge-offered-color: #155724;
+
+// Ghosted
+$badge-ghosted-bg: #e2e3e5;
+$badge-ghosted-color: #383d41;
+
+// Hired
+$badge-hired-bg: #dafbe1;
+$badge-hired-color: #116329;
+
+// Discovered
+$badge-discovered-bg: #f1f3f5;
+$badge-discovered-color: #495057;
+
+// Botones de acción adicionales (PDF, Editar, Cancelar, Guardar)
+$btn-pdf-bg: #2b6cb0;
+$btn-pdf-hover: #2c5282;
+$btn-edit-bg: #f8fafc;
+$btn-edit-hover: #edf2f7;
+$btn-cancel-bg: #e2e8f0;
+$btn-cancel-color: #475569;
+$btn-cancel-hover: #cbd5e1;
+$btn-save-bg: #10b981;

@@ -1,0 +1,110 @@
+@use 'variables' as *;
+
+.job-create-container {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 32px;
+    background: $card-bg;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+
+    .header-section {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 24px;
+
+        h1 {
+            font-size: 24px;
+            color: $text-heading;
+        }
+    }
+
+    .btn-back {
+        background: none;
+        border: 1px solid $border-color;
+        padding: 6px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        color: $text-main;
+
+        &:hover {
+            background-color: $bg-hover-light;
+        }
+    }
+
+    .job-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 8px;
+
+            label {
+                font-size: 14px;
+                font-weight: 600;
+                color: $text-label;
+            }
+
+            input,
+            select,
+            textarea {
+                padding: 10px 14px;
+                border: 1px solid $border-color;
+                border-radius: 6px;
+                font-size: 14px;
+                outline: none;
+                transition: border-color 0.2s;
+
+                &:focus {
+                    border-color: $border-color-focus;
+                }
+            }
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 16px;
+        }
+    }
+
+    .btn-primary {
+        background-color: $primary-color;
+        color: $text-inverse;
+        border: none;
+        padding: 10px 24px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+
+        &:hover {
+            background-color: $primary-color-hover;
+        }
+    }
+
+    .btn-secondary {
+        background-color: $bg-secondary-btn;
+        color: $text-main;
+        border: 1px solid $border-color;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+
+        &:hover {
+            background-color: $bg-secondary-btn-hover;
+        }
+    }
+}

@@ -1,6 +1,7 @@
 @use 'variables' as *;
 @use 'dashboard';
 @use 'detail';
+@use 'addJob';
 
 body {
   background-color: $bg-color;

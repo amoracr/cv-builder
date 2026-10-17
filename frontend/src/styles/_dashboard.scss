@@ -23,11 +23,12 @@
         font-size: 1.8rem;
         font-weight: 700;
         margin: 0;
+        color: $text-heading;
       }
 
       .status-filter {
         padding: 8px 12px;
-        background: #fff;
+        background: $card-bg;
         border: 1px solid $border-color;
         border-radius: 6px;
         color: $text-main;
@@ -49,10 +50,27 @@
       gap: 10px;
       align-items: center;
 
+      .btn-add {
+        padding: 8px 14px;
+        background: $primary-color;
+        color: $text-inverse;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        transition: background-color 0.2s, opacity 0.2s;
+
+        &:hover {
+          background-color: $primary-color-hover;
+        }
+      }
+
       .btn-archive {
         padding: 8px 14px;
-        background: #6c757d;
-        color: white;
+        background: $btn-archive-bg;
+        color: $text-inverse;
         border: none;
         border-radius: 6px;
         cursor: pointer;
@@ -65,15 +83,15 @@
         }
 
         &:disabled {
-          background: #adb5bd;
+          background: $btn-archive-disabled;
           cursor: not-allowed;
         }
       }
 
       .btn-analyze {
         padding: 8px 14px;
-        background: #6f42c1;
-        color: white;
+        background: $btn-analyze-bg;
+        color: $text-inverse;
         border: none;
         border-radius: 6px;
         cursor: pointer;
@@ -86,15 +104,15 @@
         }
 
         &:disabled {
-          background: #b19cd9;
+          background: $btn-analyze-disabled;
           cursor: not-allowed;
         }
       }
 
       .btn-scrap {
         padding: 8px 14px;
-        background: #2ea44f;
-        color: white;
+        background: $btn-scrap-bg;
+        color: $text-inverse;
         border: none;
         border-radius: 6px;
         cursor: pointer;
@@ -107,7 +125,7 @@
         }
 
         &:disabled {
-          background: #94d3a2;
+          background: $btn-scrap-disabled;
           cursor: not-allowed;
         }
       }
@@ -115,7 +133,7 @@
       .btn-refresh {
         padding: 8px 14px;
         background: $primary-color;
-        color: white;
+        color: $text-inverse;
         border: none;
         border-radius: 6px;
         cursor: pointer;
@@ -139,7 +157,7 @@
   }
 
   .counter-card {
-    background: #fff;
+    background: $card-bg;
     border: 1px solid $border-color;
     border-radius: 6px;
     padding: 10px 15px;
@@ -156,7 +174,7 @@
     }
 
     &.active {
-      background: #f0f4f8;
+      background: $bg-hover-light;
       border-color: $primary-color;
       box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
     }
@@ -198,7 +216,7 @@
       font-size: 0.95rem;
 
       th {
-        background-color: #f6f8fa;
+        background-color: $bg-external-btn;
         color: $text-muted;
         font-weight: 600;
         padding: 12px 16px;
@@ -214,13 +232,23 @@
       /* Efecto Cebra */
       tbody tr {
         &:nth-child(even) {
-          background-color: #fbfcfd;
+          background-color: $bg-table-zebra;
         }
 
         &:hover {
-          background-color: #f1f4f8;
+          background-color: $bg-hover-light;
         }
       }
+    }
+  }
+
+  /* Enlaces de títulos de empleo en la tabla */
+  .job-title-link {
+    color: $primary-color;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
     }
   }
 
@@ -234,7 +262,7 @@
 
     .btn-page {
       padding: 6px 12px;
-      background: #fff;
+      background: $card-bg;
       border: 1px solid $border-color;
       border-radius: 4px;
       cursor: pointer;
@@ -246,7 +274,7 @@
       }
 
       &:hover:not(:disabled) {
-        background: #f3f4f6;
+        background: $bg-hover-light;
       }
     }
   }
@@ -259,47 +287,47 @@
     text-transform: uppercase;
     font-weight: 700;
     letter-spacing: 0.5px;
-    background: #eee;
-    color: #333;
+    background: $badge-default-bg;
+    color: $text-main;
 
     &.to_apply {
-      background: #e6ffed;
-      color: #22863a;
+      background: $badge-to-apply-bg;
+      color: $badge-to-apply-color;
     }
 
     &.discarded {
-      background: #ffeef0;
-      color: #cb2431;
+      background: $badge-rejected-bg;
+      color: $badge-rejected-color;
     }
 
     &.manual_review {
-      background: #fffbdd;
-      color: #b08800;
+      background: $badge-review-bg;
+      color: $badge-review-color;
     }
 
     &.applied {
-      background: #f0f6fc;
-      color: #0969da;
+      background: $badge-applied-bg;
+      color: $badge-applied-color;
     }
 
     &.waiting {
-      background: #fff3cd;
-      color: #856404;
+      background: $badge-waiting-bg;
+      color: $badge-waiting-color;
     }
 
     &.interviewing {
-      background: #d1ecf1;
-      color: #0c5460;
+      background: $badge-interview-bg;
+      color: $badge-interview-color;
     }
 
     &.offered {
-      background: #d4edda;
-      color: #155724;
+      background: $badge-offered-bg;
+      color: $badge-offered-color;
     }
 
     &.ghosted {
-      background: #e2e3e5;
-      color: #383d41;
+      background: $badge-ghosted-bg;
+      color: $badge-ghosted-color;
     }
   }
 }
