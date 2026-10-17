@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libimagequant-dev \
     libwebp-dev \
     curl \
+    python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copiamos el requirements base (FastAPI, SQLModel, Pydantic, etc.)
@@ -50,6 +51,17 @@ RUN if [ -f "requirements-${WRITE_CV_ENGINE}.txt" ]; then \
     else \
         echo "No se encontró un archivo de requerimientos específico para '${WRITE_CV_ENGINE}', omitiendo..."; \
     fi
+
+# Instalamos de forma condicional el requirements del motor seleccionado 
+RUN if [ -f "requirements-${WRITE_CL_ENGINE}.txt" ]; then \
+        echo "Instalando dependencias para el motor: ${WRITE_CL_ENGINE}" && \
+        pip install --no-cache-dir -r requirements-${WRITE_CL_ENGINE}.txt; \
+    else \
+        echo "No se encontró un archivo de requerimientos específico para '${WRITE_CL_ENGINE}', omitiendo..."; \
+    fi
+
+# Instalamos el modelo de lenguaje de spaCy
+RUN python -m spacy download en_core_web_sm
 
 # Copiamos el resto del código del backend
 COPY . .

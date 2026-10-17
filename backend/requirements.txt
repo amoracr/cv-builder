@@ -8,6 +8,7 @@ pydantic
 pydantic-settings
 python-dotenv
 requests
+spacy>=3.0.0
 sqlmodel
 uvicorn
 weasyprint>=61.0
