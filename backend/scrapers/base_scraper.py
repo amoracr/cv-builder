@@ -119,6 +119,19 @@ class BaseScraper(ABC):
                 )
                 return False
 
+    def job_offer_exists(self, url: str):
+        with Session(engine) as session:
+            try:
+                # Evitar duplicados por URL de forma segura dentro de la misma sesión
+                existing_offer = session.exec(
+                    select(JobOffer).where(JobOffer.url == url)
+                ).first()
+
+                return bool(existing_offer)
+            except Exception as e:
+                print(f"⚠️ [DB Rollback] No se pudo revisar '{url}': {e}")
+                return False
+
     def validate_region(self, job_data: dict):
         region = job_data.get("region", "")
         if not region or not region.strip():
