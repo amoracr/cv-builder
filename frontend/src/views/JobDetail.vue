@@ -22,7 +22,7 @@
 
           <button v-if="job.status === 'to_apply' && !job.tailored_cv" @click="generateCv" class="btn-generate-cv"
             :disabled="generatingCv">
-            {{ generatingCv ? 'Generando documentos...' : '📄 Generar Documentos ATS' }}
+            {{ generatingCv ? 'Generando CV...' : '📄 Generar CV ATS' }}
           </button>
 
           <button v-if="!isJobClosed" @click="toggleForm('status')" class="btn-toggle-status">
