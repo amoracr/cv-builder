@@ -25,6 +25,11 @@
             {{ generatingCv ? 'Generando CV...' : '📄 Generar CV ATS' }}
           </button>
 
+          <button v-if="job.status === 'to_apply' && !job.tailored_cl" @click="generateCl" class="btn-generate-cl"
+            :disabled="generatingCl">
+            {{ generatingCl ? 'Generando Letter...' : '📄 Generar Letter ATS' }}
+          </button>
+
           <button v-if="!isJobClosed" @click="toggleForm('status')" class="btn-toggle-status">
             {{ showStatusForm ? 'Cerrar form estado' : '✏️ Cambiar Estado' }}
           </button>
@@ -206,6 +211,7 @@ const loading = ref(false)
 const submittingStatus = ref(false)
 const submittingEmail = ref(false)
 const generatingCv = ref(false)
+const generatingCl = ref(false)
 
 // Estados de guardado y edición para CV y Carta
 const savingCv = ref(false)
@@ -384,6 +390,24 @@ const generateCv = async () => {
 
 const downloadCvPdf = () => {
   window.open(`${API_URL}/jobs/${jobId}/download-cv-pdf`, '_blank')
+}
+
+const generateCl = async () => {
+  generatingCl.value = true
+  try {
+    const response = await fetch(`${API_URL}/jobs/${jobId}/generate-cl`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    if (response.ok) {
+      await fetchJobDetail()
+      activeTab.value = 'cl'
+    }
+  } catch (error) {
+    console.error('Error al generar los documentos:', error)
+  } finally {
+    generatingCl.value = false
+  }
 }
 
 const downloadCoverLetterPdf = () => {
