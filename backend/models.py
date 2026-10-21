@@ -91,7 +91,10 @@ class JobOffer(SQLModel, table=True):
     )
     emails: List[JobEmail] = Relationship(
         back_populates="job_offer",
-        sa_relationship_kwargs={"cascade": "all, delete-orphan"},
+        sa_relationship_kwargs={
+            "cascade": "all, delete-orphan",
+            "order_by": "desc(JobEmail.received_at)",
+        },
     )
 
 
