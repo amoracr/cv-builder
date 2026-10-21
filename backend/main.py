@@ -4,7 +4,7 @@ from database import init_db
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from routers import jobs, sources
+from routers import companies, jobs, sources
 
 app = FastAPI(title="Job Automation Bot", version="1.0.0", debug=True)
 
@@ -19,6 +19,7 @@ app.add_middleware(
 # Registramos el router de empleos
 app.include_router(jobs.router)
 app.include_router(sources.router)
+app.include_router(companies.router)
 
 
 @app.on_event("startup")
