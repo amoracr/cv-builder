@@ -7,7 +7,12 @@
         <div class="header-titles">
           <span :class="['badge', job.status]">{{ job.status }}</span>
           <h1>{{ job.title }}</h1>
-          <h2>{{ job.company?.name || 'Empresa confidencial' }}</h2>
+          <h2 v-if="job.company">
+            <router-link :to="{ name: 'CompanyJobs', params: { id: job.company.id } }" class="company-link">
+              🏢 {{ job.company.name }}
+            </router-link>
+          </h2>
+          <h2 v-else>🏢 N/A</h2>
           <div class="job-metadata-source">
             <span>Source: {{ job.source.name }}</span>
           </div>

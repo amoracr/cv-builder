@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import JobIndex from '../views/JobIndex.vue'
 import JobDetail from '../views/JobDetail.vue'
 import JobCreateView from '../views/AddJob.vue'
+import CompanyDetail from '../views/CompanyDetail.vue'
 
 const routes = [
   {
@@ -13,6 +14,12 @@ const routes = [
     path: '/jobs/add',
     name: 'JobCreate',
     component: JobCreateView
+  },
+  {
+    path: '/company/:id/jobs',
+    name: 'CompanyJobs',
+    component: CompanyDetail,
+    props: route => ({ companyId: Number(route.params.id) })
   },
   {
     path: '/jobs/:id',
